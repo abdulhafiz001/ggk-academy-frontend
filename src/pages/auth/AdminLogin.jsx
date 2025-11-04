@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowLeft, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, Lock, BookOpen, BarChart3, Shield } from 'lucide-react';
 import { COLORS, GRADIENTS } from '../../constants/colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -40,7 +40,15 @@ const AdminLogin = () => {
         navigate('/admin/dashboard');
       }
     } catch (error) {
-      showError(error.message || 'Login failed. Please check your credentials.');
+      // Check for rate limit error (429 status)
+      if (error.response?.status === 429) {
+        const rateLimitMessage = error.response?.data?.message || 
+                                error.response?.data?.errors?.rate_limit?.[0] ||
+                                'Too many login attempts. Please wait before trying again.';
+        showError(rateLimitMessage);
+      } else {
+        showError(error.message || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -181,32 +189,83 @@ const AdminLogin = () => {
       </div>
 
       {/* Right Side - Image/Branding */}
-      <div 
-        className="hidden lg:block lg:w-1/2 relative"
-        style={{ background: GRADIENTS.primary }}
-      >
-        <div className="absolute inset-0 bg-black bg-opacity-20" />
-        <div className="relative h-full flex items-center justify-center p-12">
-          <div className="text-center text-white">
-            <h3 className="text-4xl font-bold mb-6">
-              Welcome Back!
-            </h3>
-            <p className="text-xl opacity-90 mb-8">
-              Manage Holy Child School's academic records with ease and efficiency.
-            </p>
-            <div className="grid grid-cols-2 gap-6 text-center">
-              <div>
-                <div className="text-3xl font-bold">1,200+</div>
-                <div className="text-sm opacity-80">Students</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold">24</div>
-                <div className="text-sm opacity-80">Classes</div>
-              </div>
-            </div>
-          </div>
+      
+      {/* Right Side - Modern School Portal Welcome */}
+<div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+  {/* Background with subtle school theme */}
+  <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-red-600">
+    {/* Abstract educational pattern */}
+    <div className="absolute inset-0 opacity-10">
+      <div className="absolute top-10 left-10 w-20 h-20 border-2 border-white rounded-lg rotate-45"></div>
+      <div className="absolute top-40 right-20 w-16 h-16 border-2 border-white rounded-full"></div>
+      <div className="absolute bottom-20 left-20 w-24 h-24 border-2 border-white rounded-lg"></div>
+      <div className="absolute bottom-40 right-10 w-12 h-12 border-2 border-white rounded-full"></div>
+    </div>
+    
+    {/* Floating academic icons */}
+    <div className="absolute top-1/4 left-1/4 opacity-20">
+      <BookOpen className="w-16 h-16 text-white" />
+    </div>
+    <div className="absolute bottom-1/3 right-1/4 opacity-20">
+      <BarChart3 className="w-12 h-12 text-white" />
+    </div>
+  </div>
+
+  {/* Content */}
+  <div className="relative z-10 h-full flex items-center justify-center p-12">
+    <div className="max-w-md text-center text-white">
+      {/* School Logo & Name */}
+      <div className="mb-8">
+        <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30 flex items-center justify-center">
+          <img 
+            src="/images/holyChildLogo.jpeg" 
+            alt="Holy Child Logo" 
+            className="w-16 h-16 rounded-xl"
+          />
+        </div>
+        <h2 className="text-3xl font-bold mb-2">Holy Child School</h2>
+        <p className="text-blue-100 text-lg">Staff Portal</p>
+      </div>
+
+      {/* Welcome Message */}
+      <div className="mb-8">
+        <h3 className="text-4xl font-bold mb-4 leading-tight">
+          Welcome Back,
+          <span className="block text-yellow-300">Educator</span>
+        </h3>
+        <p className="text-xl text-blue-100 leading-relaxed">
+          Access your academic management tools and continue shaping tomorrow's leaders.
+        </p>
+      </div>
+
+    
+
+      {/* Features List */}
+      <div className="space-y-3 text-left">
+        <div className="flex items-center text-blue-100">
+          <div className="w-2 h-2 bg-yellow-300 rounded-full mr-3"></div>
+          <span>Manage student results & records</span>
+        </div>
+        <div className="flex items-center text-blue-100">
+          <div className="w-2 h-2 bg-yellow-300 rounded-full mr-3"></div>
+          <span>Track academic progress</span>
+        </div>
+        <div className="flex items-center text-blue-100">
+          <div className="w-2 h-2 bg-yellow-300 rounded-full mr-3"></div>
+          <span>Generate performance reports</span>
         </div>
       </div>
+    </div>
+  </div>
+
+  {/* Security Badge */}
+  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+    <div className="flex items-center space-x-2 text-blue-200 text-sm bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+      <Shield className="w-4 h-4" />
+      <span>Secure & Encrypted Portal</span>
+    </div>
+  </div>
+</div>
     </div>
   );
 };

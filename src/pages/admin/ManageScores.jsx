@@ -11,7 +11,9 @@ import {
   FileText,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  Upload,
+  Download
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
@@ -43,6 +45,10 @@ const ManageScores = () => {
   const [studentScores, setStudentScores] = useState({});
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [importModal, setImportModal] = useState({ isOpen: false, importing: false });
+  const [importResults, setImportResults] = useState(null);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [currentTerm, setCurrentTerm] = useState(null);
   const { showError, showSuccess } = useNotification();
   const { user } = useAuth();
 
@@ -54,7 +60,26 @@ const ManageScores = () => {
     } else if (user?.role === 'admin') {
       fetchAdminData();
     }
+    // Fetch current academic session and term
+    fetchCurrentSessionAndTerm();
   }, [user]);
+
+  // Fetch current academic session and term
+  const fetchCurrentSessionAndTerm = async () => {
+    try {
+      const response = await API.getCurrentAcademicSession();
+      const data = response.data || response;
+      setCurrentSession(data.session);
+      setCurrentTerm(data.term);
+      
+      // Set default term to current term when opening modal
+      if (data.term && data.term.name) {
+        setTerm(data.term.name);
+      }
+    } catch (error) {
+      console.error('Error fetching current session/term:', error);
+    }
+  };
 
   // Refresh scores when class or subject changes
   useEffect(() => {
@@ -435,14 +460,63 @@ const ManageScores = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">
-          Manage Scores
+            Manage Scores
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-          Record and manage student scores for your assigned classes and subjects.
+            Record and manage student scores for your assigned classes and subjects.
           </p>
+        </div>
+        <div className="flex space-x-3">
+          <button 
+            onClick={async () => {
+              try {
+                const params = {};
+                if (selectedClass) params.class_id = selectedClass;
+                if (term) params.term = term;
+                await API.exportScores(params);
+                showSuccess('Scores exported successfully');
+              } catch (error) {
+                showError(error.message || 'Failed to export scores');
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </button>
+          <button 
+            onClick={() => setImportModal({ isOpen: true, importing: false })}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Import
+          </button>
+        </div>
       </div>
+
+      {/* Current Academic Session Display */}
+      {currentSession && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-blue-900">
+                Current Academic Session: <span className="font-semibold">{currentSession.name}</span>
+              </p>
+              {currentTerm && (
+                <p className="text-xs text-blue-700 mt-1">
+                  Current Term: <span className="font-medium">{currentTerm.display_name || currentTerm.name}</span>
+                </p>
+              )}
+            </div>
+            <div className="text-xs text-blue-600">
+              ✓ All scores will be recorded for this session
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Class and Subject Selection */}
       <div className="bg-white shadow rounded-lg p-6">
@@ -512,7 +586,12 @@ const ManageScores = () => {
                     grade: '',
                     remark: ''
                   });
-                  setTerm('first');
+                  // Set term to current term if available
+                  if (currentTerm && currentTerm.name) {
+                    setTerm(currentTerm.name);
+                  } else {
+                    setTerm('first');
+                  }
                 }}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
@@ -725,12 +804,21 @@ const ManageScores = () => {
                     Student: {selectedStudent.first_name} {selectedStudent.last_name} ({selectedStudent.admission_number})
                   </span>
                 )}
+                {currentSession && (
+                  <span className="block text-sm text-gray-600 mt-1">
+                    Academic Session: {currentSession.name}
+                  </span>
+                )}
               </h3>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Term
+                    Term {currentTerm && (
+                      <span className="text-xs text-gray-500 font-normal">
+                        (Current Term: {currentTerm.display_name || currentTerm.name})
+                      </span>
+                    )}
                   </label>
                   <select
                     value={term}
@@ -754,6 +842,11 @@ const ManageScores = () => {
                   {editingScore && (
                     <p className="text-xs text-gray-500 mt-1">
                       Term cannot be changed when editing an existing score
+                    </p>
+                  )}
+                  {currentTerm && term === currentTerm.name && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      ✓ This is the current active term
                     </p>
                   )}
                 </div>
@@ -885,6 +978,120 @@ const ManageScores = () => {
                   className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                 >
                   {isSaving ? 'Saving...' : (editingScore ? 'Update' : 'Save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {importModal.isOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Import Scores from Excel/CSV</h3>
+                <button
+                  onClick={() => setImportModal({ isOpen: false, importing: false })}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-4">
+                  Upload an Excel (.xlsx, .xls) or CSV file containing score data. 
+                  Download the template below to see the required format.
+                </p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await API.downloadScoreTemplate();
+                      showSuccess('Template downloaded');
+                    } catch (error) {
+                      showError('Failed to download template');
+                    }
+                  }}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Template
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select File
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    setImportModal({ ...importModal, importing: true });
+                    try {
+                      const importMethod = user?.role === 'teacher' ? API.importScoresTeacher : API.importScores;
+                      const result = await importMethod(file);
+                      setImportResults(result);
+                      showSuccess(`Import completed: ${result.success_count} successful, ${result.error_count} errors`);
+                      
+                      // Refresh scores if class and subject are selected
+                      if (selectedClass && selectedSubject && students.length > 0) {
+                        loadStudentScores(students);
+                      }
+                    } catch (error) {
+                      showError(error.message || 'Failed to import scores');
+                    } finally {
+                      setImportModal({ ...importModal, importing: false });
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  disabled={importModal.importing}
+                />
+              </div>
+
+              {importResults && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm">
+                    <div className="mb-2">
+                      <span className="font-medium text-green-600">Successfully imported: {importResults.success_count} scores</span>
+                    </div>
+                    {importResults.error_count > 0 && (
+                      <div>
+                        <span className="font-medium text-red-600">Errors: {importResults.error_count}</span>
+                        <div className="mt-2 max-h-32 overflow-y-auto">
+                          {importResults.errors.map((error, idx) => (
+                            <div key={idx} className="text-xs text-red-600 mb-1">
+                              Row {error.row} ({error.admission_number}): {error.errors.join(', ')}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {importModal.importing && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-sm text-gray-600">Importing...</span>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => {
+                    setImportModal({ isOpen: false, importing: false });
+                    setImportResults(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Close
                 </button>
               </div>
             </div>

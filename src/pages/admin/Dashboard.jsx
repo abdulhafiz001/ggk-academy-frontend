@@ -15,6 +15,7 @@ import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import TeacherDashboard from '../teacher/TeacherDashboard';
+import AcademicSessionWarningModal from '../../components/AcademicSessionWarningModal';
 
 const Dashboard = () => {
   const { userRole } = useAuth();
@@ -103,6 +104,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      <AcademicSessionWarningModal />
       {/* Header */}
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">

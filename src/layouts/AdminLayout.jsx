@@ -12,10 +12,12 @@ import {
   X,
   Bell,
   Search,
-  User
+  User,
+  Calendar
 } from 'lucide-react';
 import { COLORS } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
+import AcademicSessionWarningModal from '../components/AcademicSessionWarningModal';
 
 
 const AdminLayout = () => {
@@ -50,11 +52,16 @@ const AdminLayout = () => {
     { name: 'Students', href: '/admin/students', icon: Users },
     { name: 'Add Student', href: '/admin/add-student', icon: UserPlus },
     { name: 'Manage Scores', href: '/admin/manage-scores', icon: FileText },
+    // Only show Attendance for teachers
+    ...(user?.role === 'teacher' ? [{ name: 'Attendance', href: '/teacher/attendance', icon: Calendar }] : []),
     // Only show Classes for admin users
     ...(user?.role === 'admin' ? [{ name: 'Classes', href: '/admin/classes', icon: BookOpen }] : []),
     { name: 'Results', href: '/admin/results', icon: FileText },
-    // Only show Settings for admin users
-    ...(user?.role === 'admin' ? [{ name: 'Settings', href: '/admin/settings', icon: Settings }] : []),
+    // Only show Attendance Analysis and Settings for admin users
+    ...(user?.role === 'admin' ? [
+      { name: 'Attendance Analysis', href: '/admin/attendance-analysis', icon: Calendar },
+      { name: 'Settings', href: '/admin/settings', icon: Settings }
+    ] : []),
     { name: 'Profile', href: '/admin/profile', icon: User },
   ];
 
@@ -241,6 +248,8 @@ const AdminLayout = () => {
         </main>
       </div>
       
+      {/* Academic Session Warning Modal - shows globally for admin/teacher */}
+      <AcademicSessionWarningModal />
     </div>
   );
 };

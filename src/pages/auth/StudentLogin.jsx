@@ -35,7 +35,15 @@ const StudentLogin = () => {
       }, 1500);
 
     } catch (error) {
-      showError(error.message || 'Invalid admission number or password. Please try again.');
+      // Check for rate limit error (429 status)
+      if (error.response?.status === 429) {
+        const rateLimitMessage = error.response?.data?.message || 
+                                error.response?.data?.errors?.rate_limit?.[0] ||
+                                'Too many login attempts. Please wait before trying again.';
+        showError(rateLimitMessage);
+      } else {
+        showError(error.message || 'Invalid admission number or password. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -179,11 +187,7 @@ const StudentLogin = () => {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Other login options
-                </span>
-              </div>
+              
             </div>
 
             

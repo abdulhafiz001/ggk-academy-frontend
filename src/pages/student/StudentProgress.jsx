@@ -17,14 +17,26 @@ const StudentProgress = () => {
     }
   }, [user]);
 
+  const [currentSession, setCurrentSession] = useState(null);
+  const [admissionSession, setAdmissionSession] = useState(null);
+
   const fetchProgressData = async () => {
     try {
       setLoading(true);
       const response = await API.getStudentResults();
-      const data = response.data;
+      const responseData = response.data || response;
+      const results = responseData.results || {};
+      
+      // Set current session and admission info
+      if (responseData.current_session) {
+        setCurrentSession(responseData.current_session);
+      }
+      if (responseData.admission_session) {
+        setAdmissionSession(responseData.admission_session);
+      }
       
       // Process the data to create progress information
-      const processedData = processProgressData(data);
+      const processedData = processProgressData(results);
       setProgressData(processedData);
       
       // Set default selected term to the first available term
@@ -38,9 +50,21 @@ const StudentProgress = () => {
     }
   };
 
-  const processProgressData = (data) => {
-    const results = data.results || {};
-    const terms = Object.keys(results);
+  const processProgressData = (results) => {
+    // Results now grouped by session then term: { "2024/2025": { "First Term": [...], "Second Term": [...] } }
+    // Flatten to get all terms across all sessions
+    const allTerms = [];
+    const termData = {};
+    
+    Object.entries(results).forEach(([session, sessionResults]) => {
+      Object.entries(sessionResults).forEach(([term, termResults]) => {
+        const termKey = `${session} - ${term}`;
+        allTerms.push(termKey);
+        termData[termKey] = termResults || [];
+      });
+    });
+    
+    const terms = allTerms;
     
     const processedData = {
       terms,
@@ -198,9 +222,15 @@ const StudentProgress = () => {
                   <span className="text-sm text-gray-900 font-semibold">{user?.school_class?.name || 'Loading...'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-600">Session:</span>
-                  <span className="text-sm text-gray-900 font-semibold">2024/2025</span>
+                  <span className="text-sm font-medium text-gray-600">Current Session:</span>
+                  <span className="text-sm text-gray-900 font-semibold">{currentSession?.name || 'Not Set'}</span>
                 </div>
+                {admissionSession && (
+                  <div className="flex items-center space-x-2 mt-2">
+                    <span className="text-xs text-gray-500">Admitted:</span>
+                    <span className="text-xs text-gray-700">{admissionSession.name}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

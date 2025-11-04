@@ -9,6 +9,7 @@ import AdminLayout from './layouts/AdminLayout';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
+import GuestRoute from './components/GuestRoute';
 
 // Context wrapper component
 const ContextWrapper = ({ children }) => (
@@ -41,20 +42,24 @@ import ManageScores from './pages/admin/ManageScores';
 import Classes from './pages/admin/Classes';
 import Results from './pages/admin/Results';
 import Settings from './pages/admin/Settings';
-import Profile from './pages/admin/Profile';
+import AdminProfile from './pages/admin/AdminProfile';
+import AttendanceAnalysis from './pages/admin/AttendanceAnalysis';
 
 // Teacher pages
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherStudentResults from './pages/teacher/TeacherStudentResults';
 import TeacherProfile from './pages/teacher/Profile';
+import Attendance from './pages/teacher/Attendance';
 
 const router = createBrowserRouter([
-  // Guest routes (public)
+  // Guest routes (public - but redirect authenticated users)
   {
     path: "/",
     element: (
       <ContextWrapper>
-        <GuestLayout />
+        <GuestRoute>
+          <GuestLayout />
+        </GuestRoute>
       </ContextWrapper>
     ),
     children: [
@@ -65,12 +70,14 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Auth routes
+  // Auth routes (guests only - authenticated users redirected)
   {
     path: "/auth",
     element: (
       <ContextWrapper>
-        <GuestLayout />
+        <GuestRoute>
+          <GuestLayout />
+        </GuestRoute>
       </ContextWrapper>
     ),
     children: [
@@ -167,12 +174,16 @@ const router = createBrowserRouter([
         element: <Results />,
       },
       {
+        path: 'attendance-analysis',
+        element: <AttendanceAnalysis />,
+      },
+      {
         path: 'settings',
         element: <Settings />,
       },
       {
         path: 'profile',
-        element: <Profile />,
+        element: <AdminProfile />,
       },
     ],
   },
@@ -199,6 +210,10 @@ const router = createBrowserRouter([
       {
         path: 'manage-scores',
         element: <ManageScores />,
+      },
+      {
+        path: 'attendance',
+        element: <Attendance />,
       },
       {
         path: 'results',

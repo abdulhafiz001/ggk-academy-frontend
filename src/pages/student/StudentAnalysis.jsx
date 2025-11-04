@@ -18,14 +18,26 @@ const StudentAnalysis = () => {
     }
   }, [user]);
 
+  const [currentSession, setCurrentSession] = useState(null);
+  const [admissionSession, setAdmissionSession] = useState(null);
+
   const fetchAnalysisData = async () => {
     try {
       setLoading(true);
       const response = await API.getStudentResults();
-      const data = response.data;
+      const responseData = response.data || response;
+      const results = responseData.results || {};
+      
+      // Set current session and admission info
+      if (responseData.current_session) {
+        setCurrentSession(responseData.current_session);
+      }
+      if (responseData.admission_session) {
+        setAdmissionSession(responseData.admission_session);
+      }
       
       // Process the data to create analysis information
-      const processedData = processAnalysisData(data);
+      const processedData = processAnalysisData(results);
       setAnalysisData(processedData);
       
       // Set default selected subject to the first available subject
@@ -39,11 +51,29 @@ const StudentAnalysis = () => {
     }
   };
 
-  const processAnalysisData = (data) => {
-    const results = data.results || {};
-    const terms = Object.keys(results);
+  const processAnalysisData = (results) => {
+    // Results now grouped by session then term: { "2024/2025": { "First Term": [...], "Second Term": [...] } }
+    // Flatten all terms across all sessions for comparison
+    const allTermsData = [];
+    Object.entries(results).forEach(([session, sessionResults]) => {
+      Object.entries(sessionResults).forEach(([term, termResults]) => {
+        allTermsData.push({
+          key: `${session} - ${term}`,
+          session,
+          term,
+          results: termResults || []
+        });
+      });
+    });
     
-    if (terms.length < 2) {
+    // Sort by session and term to get chronological order
+    allTermsData.sort((a, b) => {
+      if (a.session !== b.session) return a.session.localeCompare(b.session);
+      const termOrder = { 'First Term': 1, 'Second Term': 2, 'Third Term': 3 };
+      return (termOrder[a.term] || 0) - (termOrder[b.term] || 0);
+    });
+    
+    if (allTermsData.length < 2) {
       return {
         subjects: [],
         subjectAnalysis: {},
@@ -56,11 +86,13 @@ const StudentAnalysis = () => {
     }
 
     // Get the last two terms for comparison
-    const currentTerm = terms[terms.length - 1];
-    const previousTerm = terms[terms.length - 2];
+    const currentTermData = allTermsData[allTermsData.length - 1];
+    const previousTermData = allTermsData[allTermsData.length - 2];
     
-    const currentTermResults = results[currentTerm] || [];
-    const previousTermResults = results[previousTerm] || [];
+    const currentTermResults = currentTermData.results || [];
+    const previousTermResults = previousTermData.results || [];
+    const currentTerm = currentTermData.key;
+    const previousTerm = previousTermData.key;
 
     // Create subject mapping for comparison
     const subjectMap = {};
@@ -437,7 +469,12 @@ const StudentAnalysis = () => {
               <h2 className="text-xl font-bold text-gray-900">
                 {user ? `${user.first_name} ${user.last_name}` : 'Loading...'}
               </h2>
-              <p className="text-gray-600">{user?.school_class?.name || 'Loading...'} • 2024/2025</p>
+              <p className="text-gray-600">{user?.school_class?.name || 'Loading...'} • Current Session: {currentSession?.name || 'Not Set'}</p>
+              {admissionSession && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Admitted: {admissionSession.name}
+                </p>
+              )}
               <p className="text-sm text-gray-500 mt-1">
                 Analyzing: {analysisData.previousTerm} → {analysisData.currentTerm}
               </p>

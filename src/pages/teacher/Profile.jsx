@@ -292,10 +292,10 @@ const Profile = () => {
               
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Full Name */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Full Name
+                  {/* Full Name - Required for teachers */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Full Name *
                     </label>
                     {isEditing ? (
                       <input
@@ -312,50 +312,30 @@ const Profile = () => {
                     )}
                   </div>
 
-                  {/* First Name */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      First Name
+                  {/* Username - Required for teachers */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Username *
                     </label>
                     {isEditing ? (
                       <input
                         type="text"
-                        value={editData.first_name}
-                        onChange={(e) => handleEditChange('first_name', e.target.value)}
+                        value={editData.username}
+                        onChange={(e) => handleEditChange('username', e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
-                        placeholder="Enter first name"
+                        placeholder="Enter username"
                       />
                     ) : (
                       <div className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100">
-                        <p className="text-gray-900 font-medium text-lg">{profileData.first_name || 'N/A'}</p>
+                        <p className="text-gray-900 font-medium text-lg">{profileData.username || 'N/A'}</p>
                       </div>
                     )}
                   </div>
 
-                  {/* Last Name */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Last Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.last_name}
-                        onChange={(e) => handleEditChange('last_name', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
-                        placeholder="Enter last name"
-                      />
-                    ) : (
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100">
-                        <p className="text-gray-900 font-medium text-lg">{profileData.last_name || 'N/A'}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Email Address
+                  {/* Email - Optional for teachers */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Email Address (Optional)
                     </label>
                     {isEditing ? (
                       <input
@@ -363,7 +343,7 @@ const Profile = () => {
                         value={editData.email}
                         onChange={(e) => handleEditChange('email', e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
-                        placeholder="Enter email address"
+                        placeholder="teacher@holychild.edu.ng"
                       />
                     ) : (
                       <div className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100">
@@ -372,9 +352,9 @@ const Profile = () => {
                     )}
                   </div>
 
-                  {/* Phone */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  {/* Phone - Optional for teachers */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
                       Phone Number
                     </label>
                     {isEditing ? (
@@ -383,7 +363,7 @@ const Profile = () => {
                         value={editData.phone}
                         onChange={(e) => handleEditChange('phone', e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
-                        placeholder="Enter phone number"
+                        placeholder="+234 xxx xxx xxxx"
                       />
                     ) : (
                       <div className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100">

@@ -51,15 +51,30 @@ class API {
 
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
+            
+            // Try to parse JSON, but handle non-JSON responses gracefully
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    data = { message: text || 'Request failed' };
+                }
+            }
 
             console.log('🔍 API Response Debug:');
             console.log('Status:', response.status);
             console.log('Response data:', data);
+            console.log('URL:', url);
 
             if (!response.ok) {
                 // Create error object that matches expected structure
-                const error = new Error(data.message || 'Something went wrong');
+                const errorMessage = data.message || data.error || `The route ${url} could not be found.` || 'Something went wrong';
+                const error = new Error(errorMessage);
                 error.response = {
                     data: data,
                     status: response.status,
@@ -71,10 +86,11 @@ class API {
             return { data, status: response.status };
         } catch (error) {
             console.error('❌ API Error:', error);
-            // If it's a network error, create a proper error structure
+            console.error('❌ Error URL:', url);
+            // If it's a network error or parsing error, create a proper error structure
             if (!error.response) {
                 error.response = {
-                    data: { message: error.message },
+                    data: { message: error.message || 'Network Error' },
                     status: 0,
                     statusText: 'Network Error'
                 };
@@ -540,6 +556,507 @@ class API {
             method: 'PUT',
             body: JSON.stringify(passwordData),
         });
+    }
+
+    // Academic Session APIs
+    async getAcademicSessions() {
+        return await this.request('/admin/academic-sessions');
+    }
+
+    async getCurrentAcademicSession() {
+        return await this.request('/academic-sessions/current');
+    }
+
+    async createAcademicSession(sessionData) {
+        return await this.request('/admin/academic-sessions', {
+            method: 'POST',
+            body: JSON.stringify(sessionData),
+        });
+    }
+
+    async updateAcademicSession(sessionId, sessionData) {
+        return await this.request(`/admin/academic-sessions/${sessionId}`, {
+            method: 'PUT',
+            body: JSON.stringify(sessionData),
+        });
+    }
+
+    async deleteAcademicSession(sessionId) {
+        return await this.request(`/admin/academic-sessions/${sessionId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async setCurrentAcademicSession(sessionId) {
+        return await this.request(`/admin/academic-sessions/${sessionId}/set-current`, {
+            method: 'POST',
+        });
+    }
+
+    async updateTerm(termId, termData) {
+        return await this.request(`/admin/terms/${termId}`, {
+            method: 'PUT',
+            body: JSON.stringify(termData),
+        });
+    }
+
+    async setCurrentTerm(termId, academicSessionId) {
+        return await this.request(`/admin/terms/${termId}/set-current`, {
+            method: 'POST',
+            body: JSON.stringify({ academic_session_id: academicSessionId }),
+        });
+    }
+
+    // Report Generation APIs
+    async generateStudentReportCard(studentId, params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = `/admin/students/${studentId}/report-card${queryString ? `?${queryString}` : ''}`;
+        
+        // For PDF download, we need to handle blob response
+        const url = `${this.baseURL}${endpoint}`;
+        const headers = this.getHeaders();
+        
+        const response = await fetch(url, {
+            headers: {
+                ...headers,
+                'Accept': 'application/pdf',
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to generate report');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `report_card_${studentId}_${params.term || 'term'}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        return { success: true };
+    }
+
+    async generateStudentReportCardSelf(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = `/student/report-card${queryString ? `?${queryString}` : ''}`;
+        
+        const url = `${this.baseURL}${endpoint}`;
+        const headers = this.getHeaders();
+        
+        const response = await fetch(url, {
+            headers: {
+                ...headers,
+                'Accept': 'application/pdf',
+            },
+        });
+
+        if (!response.ok) {
+            // Check if response is JSON or HTML
+            const contentType = response.headers.get('content-type');
+            let errorMessage = 'Failed to generate report';
+            
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    const error = await response.json();
+                    errorMessage = error.message || errorMessage;
+                } catch (e) {
+                    errorMessage = `Server error: ${response.status} ${response.statusText}`;
+                }
+            } else {
+                // HTML error page or other non-JSON response
+                const text = await response.text();
+                errorMessage = `Server error: ${response.status} ${response.statusText}. Please check if the endpoint exists and you have the required permissions.`;
+                console.error('Non-JSON error response:', text.substring(0, 200));
+            }
+            
+            throw new Error(errorMessage);
+        }
+
+        // Check if response is actually a PDF
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/pdf')) {
+            const text = await response.text();
+            console.error('Expected PDF but got:', contentType, text.substring(0, 200));
+            throw new Error('Server did not return a PDF file. Please check the endpoint and try again.');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `my_report_card_${params.term || 'term'}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        return { success: true };
+    }
+
+    // Bulk Import/Export APIs
+    async importStudents(file, classId = null) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Add class_id if provided
+        if (classId) {
+            formData.append('class_id', classId);
+        }
+
+        const url = `${this.baseURL}/admin/students/import`;
+        const headers = this.getHeaders();
+        delete headers['Content-Type']; // Let browser set content-type with boundary
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': headers.Authorization,
+            },
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to import students');
+        }
+
+        return data;
+    }
+
+    async exportStudents() {
+        const url = `${this.baseURL}/admin/students/export`;
+        const headers = this.getHeaders();
+        
+        const response = await fetch(url, {
+            headers: {
+                ...headers,
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to export students');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `students_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        return { success: true };
+    }
+
+    async downloadStudentTemplate() {
+        // Construct URL - ensure no double slashes
+        const endpoint = '/admin/students/import-template';
+        const baseUrl = this.baseURL.endsWith('/') ? this.baseURL.slice(0, -1) : this.baseURL;
+        const url = `${baseUrl}${endpoint}`;
+        const headers = this.getHeaders();
+        
+        try {
+            console.log('Downloading template from:', url);
+            console.log('Base URL:', this.baseURL);
+            console.log('Headers:', headers);
+            
+            // Use fetch directly but ensure proper authentication
+            const authHeader = headers.Authorization || headers['Authorization'] || '';
+            
+            if (!authHeader) {
+                throw new Error('No authentication token found. Please log in again.');
+            }
+            
+            console.log('Auth header for template download:', authHeader ? 'Present' : 'Missing');
+            console.log('Full URL being called:', url);
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': authHeader,
+                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+            });
+
+            console.log('Template download response status:', response.status);
+            console.log('Template download response ok:', response.ok);
+            console.log('Template download response headers:', Object.fromEntries(response.headers.entries()));
+
+            if (!response.ok) {
+                // Try to get error message
+                const contentType = response.headers.get('content-type');
+                let errorMessage = `Failed to download template (${response.status})`;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (e) {
+                        // Not JSON, try text
+                        const errorText = await response.text();
+                        if (errorText && errorText.length < 500) {
+                            errorMessage = errorText;
+                        }
+                    }
+                } else {
+                    const errorText = await response.text();
+                    if (response.status === 404) {
+                        errorMessage = 'Template endpoint not found. Please ensure you are logged in as an admin and the route exists.';
+                    } else if (errorText && errorText.length < 500 && !errorText.includes('<!DOCTYPE')) {
+                        errorMessage = errorText;
+                    }
+                }
+                
+                throw new Error(errorMessage);
+            }
+
+            const contentType = response.headers.get('content-type');
+            console.log('Response content type:', contentType);
+            
+            // Check if it's actually an Excel file or an error JSON
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to download template');
+            }
+
+            // Download the file
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = 'student_import_template.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+
+            return { success: true };
+        } catch (error) {
+            console.error('Template download error:', error);
+            // Re-throw with user-friendly message
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                throw new Error('Network error. Please check your connection and ensure the server is running.');
+            }
+            throw error;
+        }
+    }
+
+    async importScores(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const url = `${this.baseURL}/admin/scores/import`;
+        const headers = this.getHeaders();
+        delete headers['Content-Type'];
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': headers.Authorization,
+            },
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to import scores');
+        }
+
+        return data;
+    }
+
+    async exportScores(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const url = `${this.baseURL}/admin/scores/export${queryString ? `?${queryString}` : ''}`;
+        const headers = this.getHeaders();
+        
+        const response = await fetch(url, {
+            headers: {
+                ...headers,
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to export scores');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `scores_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        return { success: true };
+    }
+
+    async downloadScoreTemplate() {
+        const url = `${this.baseURL}/admin/scores/import-template`;
+        const headers = this.getHeaders();
+        
+        const response = await fetch(url, {
+            headers: {
+                ...headers,
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to download template');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = 'score_import_template.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        return { success: true };
+    }
+
+    // Teacher import/export methods
+    // Promotion Management APIs
+    async getPromotionRules() {
+        return await this.request('/admin/promotion-rules');
+    }
+
+    async createPromotionRule(ruleData) {
+        return await this.request('/admin/promotion-rules', {
+            method: 'POST',
+            body: JSON.stringify(ruleData),
+        });
+    }
+
+    async updatePromotionRule(ruleId, ruleData) {
+        return await this.request(`/admin/promotion-rules/${ruleId}`, {
+            method: 'PUT',
+            body: JSON.stringify(ruleData),
+        });
+    }
+
+    async deletePromotionRule(ruleId) {
+        return await this.request(`/admin/promotion-rules/${ruleId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async promoteStudents(params) {
+        return await this.request('/admin/promote-students', {
+            method: 'POST',
+            body: JSON.stringify(params),
+        });
+    }
+
+    // Attendance APIs (Teacher)
+    async getTeacherAttendanceClasses() {
+        return await this.request('/teacher/attendance/classes');
+    }
+
+    async getClassStudentsForAttendance(classId, subjectId) {
+        return await this.request(`/teacher/attendance/students?class_id=${classId}&subject_id=${subjectId}`);
+    }
+
+    async markAttendance(data) {
+        return await this.request('/teacher/attendance/mark', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async getAttendanceRecords(params) {
+        const queryParams = new URLSearchParams(params).toString();
+        return await this.request(`/teacher/attendance/records?${queryParams}`);
+    }
+
+    // Attendance APIs (Admin)
+    async getAttendanceStatistics(params) {
+        const queryParams = new URLSearchParams(params).toString();
+        return await this.request(`/admin/attendance/statistics?${queryParams}`);
+    }
+
+    async getAdminAttendanceRecords(params) {
+        const queryParams = new URLSearchParams(params).toString();
+        return await this.request(`/admin/attendance/records?${queryParams ? '&' + queryParams : ''}`);
+    }
+
+    // Grading Configuration APIs
+    async getGradingConfigurations() {
+        return await this.request('/admin/grading-configurations');
+    }
+
+    async getGradingConfiguration(id) {
+        return await this.request(`/admin/grading-configurations/${id}`);
+    }
+
+    async createGradingConfiguration(data) {
+        return await this.request('/admin/grading-configurations', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateGradingConfiguration(id, data) {
+        return await this.request(`/admin/grading-configurations/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteGradingConfiguration(id) {
+        return await this.request(`/admin/grading-configurations/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async setDefaultGradingConfiguration(id) {
+        return await this.request(`/admin/grading-configurations/${id}/set-default`, {
+            method: 'POST',
+        });
+    }
+
+    async importScoresTeacher(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const url = `${this.baseURL}/teacher/scores/import`;
+        const headers = this.getHeaders();
+        delete headers['Content-Type'];
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': headers.Authorization,
+            },
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to import scores');
+        }
+
+        return data;
     }
 }
 

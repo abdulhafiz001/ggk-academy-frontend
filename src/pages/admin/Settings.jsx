@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   BookOpen,
   Users,
@@ -14,18 +15,35 @@ import {
   Calendar,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  GraduationCap
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
+import AcademicSessionsTab from '../../components/AcademicSessionsTab';
+import PromotionTab from '../../components/PromotionTab';
+import GradingConfigurationTab from '../../components/GradingConfigurationTab';
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState('classes');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(
+    location.state?.tab || 'academic-sessions'
+  );
   const [showAddForm, setShowAddForm] = useState(false);
+  
+  // Reset to academic-sessions tab if navigated from warning modal
+  useEffect(() => {
+    if (location.state?.tab === 'academic-sessions') {
+      setActiveTab('academic-sessions');
+    }
+  }, [location.state]);
 
   const tabs = [
+    { id: 'academic-sessions', name: 'Academic Sessions', icon: Calendar },
+    { id: 'promotion', name: 'Student Promotion', icon: GraduationCap },
+    { id: 'grading', name: 'Grading Configuration', icon: SettingsIcon },
     { id: 'classes', name: 'Classes', icon: BookOpen },
     { id: 'subjects', name: 'Subjects', icon: SettingsIcon },
     { id: 'teachers', name: 'Teachers', icon: Users },
@@ -35,6 +53,12 @@ const Settings = () => {
 
   const TabContent = () => {
     switch (activeTab) {
+      case 'academic-sessions':
+        return <AcademicSessionsTab />;
+      case 'promotion':
+        return <PromotionTab />;
+      case 'grading':
+        return <GradingConfigurationTab />;
       case 'classes':
         return <ClassesTab />;
       case 'subjects':
@@ -46,7 +70,7 @@ const Settings = () => {
       case 'admins':
         return <AdminsTab />;
       default:
-        return <ClassesTab />;
+        return <AcademicSessionsTab />;
     }
   };
 

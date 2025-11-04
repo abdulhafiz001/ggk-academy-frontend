@@ -10,7 +10,8 @@ import {
   BookOpen,
   Target,
   AlertCircle,
-  Loader2
+  Loader2,
+  Download
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
@@ -172,6 +173,30 @@ const StudentResults = () => {
   const currentTermResults = selectedTerm ? results[selectedTerm] : [];
   const summary = calculateSummary(currentTermResults);
 
+  const handleDownloadPDF = async () => {
+    if (!selectedTerm || !student) {
+      showError('Please select a term to generate report card');
+      return;
+    }
+
+    try {
+      const termMapping = {
+        'First Term': 'first',
+        'Second Term': 'second',
+        'Third Term': 'third',
+      };
+      
+      const term = termMapping[selectedTerm] || 'first';
+      
+      await API.generateStudentReportCard(student.id, {
+        term: term,
+      });
+    } catch (error) {
+      showError(error.message || 'Failed to generate PDF report card');
+      console.error('PDF generation error:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Back Button */}
@@ -183,6 +208,16 @@ const StudentResults = () => {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Students
         </button>
+        {selectedTerm && (
+          <button
+            onClick={handleDownloadPDF}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white shadow-sm hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: COLORS.primary.red }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download Report Card (PDF)
+          </button>
+        )}
       </div>
 
       {/* Student Info Header */}

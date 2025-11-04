@@ -1,4 +1,4 @@
-# TGCRA Result Platform Frontend
+# Hol Result Platform Frontend
 
 A comprehensive student result management system built with React and Laravel.
 

@@ -19,7 +19,8 @@ import {
   Upload,
   FileText,
   Shield,
-  UserCheck
+  UserCheck,
+  X
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
@@ -42,11 +43,16 @@ const Students = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, student: null });
   const [editModal, setEditModal] = useState({ isOpen: false, student: null });
   const [submitting, setSubmitting] = useState(false);
+  const [importModal, setImportModal] = useState({ isOpen: false, importing: false, selectedClassId: null });
+  const [importResults, setImportResults] = useState(null);
 
-  // Role-based permissions
-  const isAdmin = user?.role === 'admin';
-  const isTeacher = user?.role === 'teacher';
-  const canManageStudents = isAdmin || (isTeacher && user?.is_form_teacher);
+  // Role-based permissions - use useMemo to ensure they update when user changes
+  const isAdmin = useMemo(() => user?.role === 'admin', [user?.role]);
+  const isTeacher = useMemo(() => user?.role === 'teacher', [user?.role]);
+  const isFormTeacher = useMemo(() => isTeacher && (user?.is_form_teacher === true || user?.is_form_teacher === 1), [isTeacher, user?.is_form_teacher]);
+  const canManageStudents = useMemo(() => isAdmin || isFormTeacher, [isAdmin, isFormTeacher]);
+  // Only admin and form teachers can import/export
+  const canImportExport = useMemo(() => isAdmin || isFormTeacher, [isAdmin, isFormTeacher]);
   
   // Check if user can view results (all roles can view results)
   const canViewResults = true;
@@ -64,9 +70,11 @@ const Students = () => {
   };
 
   useEffect(() => {
-    fetchStudents();
-    fetchClasses();
-  }, []);
+    if (user) {
+      fetchStudents();
+      fetchClasses();
+    }
+  }, [user]);
 
   // Update class counts when students change
   useEffect(() => {
@@ -138,14 +146,30 @@ const Students = () => {
       let response;
       
       if (user?.role === 'teacher') {
-        // Teachers can only see their assigned classes
-        response = await API.getTeacherClasses();
+        // Form teachers can see their assigned classes (where they are form teacher)
+        response = await API.getFormTeacherClasses();
       } else {
         // Admins can see all classes
         response = await API.getClasses();
       }
       
-      const classData = response?.data || response || [];
+      // Handle different response structures
+      let classData;
+      if (response?.data) {
+        // If response has data property, check if it's an array or has nested data
+        if (Array.isArray(response.data)) {
+          classData = response.data;
+        } else if (response.data?.data && Array.isArray(response.data.data)) {
+          classData = response.data.data;
+        } else {
+          classData = [];
+        }
+      } else if (Array.isArray(response)) {
+        // If response is directly an array
+        classData = response;
+      } else {
+        classData = [];
+      }
       
       // Debug: Log class data
       console.log('Students - Classes API Response:', response);
@@ -171,7 +195,7 @@ const Students = () => {
       if (user?.role === 'teacher' && error.response?.status === 404) {
         setClasses([{ id: 'all', name: 'All Classes', count: 0, color: 'bg-gray-100 text-gray-800' }]);
       } else {
-      showError('Failed to load classes');
+        showError('Failed to load classes');
         setClasses([{ id: 'all', name: 'All Classes', count: 0, color: 'bg-gray-100 text-gray-800' }]);
       }
     }
@@ -305,7 +329,7 @@ const Students = () => {
     return false;
   }, [isAdmin, isTeacher]);
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
@@ -335,20 +359,39 @@ const Students = () => {
           )}
         </div>
         <div className="flex space-x-3">
-          {canManageStudents && (
+          {canImportExport && user && (
             <>
-              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+              <button 
+                onClick={async () => {
+                  try {
+                    await API.exportStudents();
+                    showSuccess('Students exported successfully');
+                  } catch (error) {
+                    showError(error.message || 'Failed to export students');
+                  }
+                }}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </button>
               <button 
-                onClick={() => navigate('/admin/add-student')}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
-                style={{ backgroundColor: COLORS.primary.red }}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Student
+                onClick={() => setImportModal({ isOpen: true, importing: false, selectedClassId: null })}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Import
               </button>
             </>
+          )}
+          {canManageStudents && user && (
+            <button 
+              onClick={() => navigate('/admin/add-student')}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
+              style={{ backgroundColor: COLORS.primary.red }}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add Student
+            </button>
           )}
         </div>
       </div>
@@ -801,6 +844,157 @@ const Students = () => {
         student={editModal.student}
         onSuccess={handleEditSuccess}
       />
+
+      {/* Import Modal */}
+      {importModal.isOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Import Students from Excel/CSV</h3>
+                <button
+                  onClick={() => setImportModal({ isOpen: false, importing: false, selectedClassId: null })}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-4">
+                  Upload an Excel (.xlsx, .xls) or CSV file containing student data. 
+                  Download the template below to see the required format.
+                </p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await API.downloadStudentTemplate();
+                      showSuccess('Template downloaded');
+                    } catch (error) {
+                      showError(error.response?.data?.message || error.message || 'Failed to download template');
+                      console.error('Template download error:', error);
+                    }
+                  }}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Template
+                </button>
+              </div>
+
+              {/* Class Selection - Required before import */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Class <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={importModal.selectedClassId || ''}
+                  onChange={(e) => setImportModal({ ...importModal, selectedClassId: e.target.value })}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                  required
+                >
+                  <option value="">-- Select a class --</option>
+                  {isAdmin ? (
+                    // Admin can select any class
+                    classes.filter(c => c.id !== 'all').map((classItem) => (
+                      <option key={classItem.id} value={classItem.id}>
+                        {classItem.name}
+                      </option>
+                    ))
+                  ) : (
+                    // Form teacher can only select their assigned classes
+                    classes.filter(c => c.id !== 'all' && c.is_form_teacher !== false).map((classItem) => (
+                      <option key={classItem.id} value={classItem.id}>
+                        {classItem.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  {isAdmin 
+                    ? 'Select the class where you want to import students.' 
+                    : 'You can only import students to classes where you are a form teacher.'}
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select File <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    if (!importModal.selectedClassId) {
+                      showError('Please select a class first');
+                      return;
+                    }
+
+                    setImportModal({ ...importModal, importing: true });
+                    try {
+                      const result = await API.importStudents(file, importModal.selectedClassId);
+                      setImportResults(result);
+                      showSuccess(`Import completed: ${result.success_count} successful, ${result.error_count} errors`);
+                      fetchStudents(); // Refresh the list
+                      setImportModal({ isOpen: false, importing: false, selectedClassId: null });
+                    } catch (error) {
+                      showError(error.message || 'Failed to import students');
+                    } finally {
+                      setImportModal({ ...importModal, importing: false });
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  disabled={importModal.importing || !importModal.selectedClassId}
+                />
+              </div>
+
+              {importResults && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm">
+                    <div className="mb-2">
+                      <span className="font-medium text-green-600">Successfully imported: {importResults.success_count} students</span>
+                    </div>
+                    {importResults.error_count > 0 && (
+                      <div>
+                        <span className="font-medium text-red-600">Errors: {importResults.error_count}</span>
+                        <div className="mt-2 max-h-32 overflow-y-auto">
+                          {importResults.errors.map((error, idx) => (
+                            <div key={idx} className="text-xs text-red-600 mb-1">
+                              Row {error.row} ({error.admission_number}): {error.errors.join(', ')}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {importModal.importing && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-sm text-gray-600">Importing...</span>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => {
+                    setImportModal({ isOpen: false, importing: false });
+                    setImportResults(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -7,17 +7,21 @@ import { useNotification } from '../../contexts/NotificationContext';
 // Dynamic import for download features
 const StudentResults = () => {
   const [selectedTerm, setSelectedTerm] = useState('Second Term');
-  const [selectedSession, setSelectedSession] = useState('2023/2024');
+  const [selectedSession, setSelectedSession] = useState('');
   const [results, setResults] = useState({});
+  const [availableSessions, setAvailableSessions] = useState([]);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [admissionSession, setAdmissionSession] = useState(null);
+  const [admissionTerm, setAdmissionTerm] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { showError } = useNotification();
+  const { showError, showSuccess } = useNotification();
 
   const studentInfo = {
     name: user ? `${user.first_name} ${user.last_name}` : "Loading...",
     admissionNumber: user?.admission_number || "Loading...",
     class: user?.school_class?.name || "Loading...",
-    session: "2024/2025" // This could come from backend in the future
+    session: currentSession?.name || "Not Set"
   };
 
   const schoolInfo = {
@@ -26,21 +30,46 @@ const StudentResults = () => {
     address: '',
   };
 
-  const terms = Object.keys(results).length > 0 ? Object.keys(results) : ['First Term', 'Second Term', 'Third Term'];
-  const sessions = ['2022/2023', '2023/2024', '2024/2025'];
-
   // Fetch results data
   useEffect(() => {
     const fetchResults = async () => {
       try {
         setLoading(true);
         const response = await API.getStudentResults();
-        setResults(response.data.results || {});
+        const responseData = response.data || response;
         
-        // Set available terms from the response
-        const availableTerms = Object.keys(response.data.results || {});
-        if (availableTerms.length > 0) {
-          setSelectedTerm(availableTerms[0]);
+        // New structure: results grouped by session then term
+        const resultsData = responseData.results || {};
+        setResults(resultsData);
+        
+        // Set current session and admission info
+        if (responseData.current_session) {
+          setCurrentSession(responseData.current_session);
+        }
+        if (responseData.admission_session) {
+          setAdmissionSession(responseData.admission_session);
+        }
+        if (responseData.admission_term) {
+          setAdmissionTerm(responseData.admission_term);
+        }
+        
+        // Get available sessions from results keys
+        const sessions = Object.keys(resultsData);
+        setAvailableSessions(sessions);
+        
+        // Set default selected session (current or first available)
+        if (responseData.current_session) {
+          setSelectedSession(responseData.current_session.name);
+        } else if (sessions.length > 0) {
+          setSelectedSession(sessions[0]);
+        }
+        
+        // Set default selected term for the selected session
+        if (selectedSession && resultsData[selectedSession]) {
+          const terms = Object.keys(resultsData[selectedSession]);
+          if (terms.length > 0) {
+            setSelectedTerm(terms[0]);
+          }
         }
       } catch (err) {
         showError(err.response?.data?.message || 'Failed to load results');
@@ -51,6 +80,32 @@ const StudentResults = () => {
 
     fetchResults();
   }, []);
+
+  // Update selected term when session changes
+  useEffect(() => {
+    if (selectedSession && results[selectedSession]) {
+      const terms = Object.keys(results[selectedSession]);
+      if (terms.length > 0) {
+        setSelectedTerm(terms[0]);
+      }
+    }
+  }, [selectedSession, results]);
+
+  // Get available terms for selected session
+  const getAvailableTerms = () => {
+    if (!selectedSession || !results[selectedSession]) {
+      return [];
+    }
+    return Object.keys(results[selectedSession]);
+  };
+
+  // Get results for selected session and term
+  const getCurrentResults = () => {
+    if (!selectedSession || !selectedTerm || !results[selectedSession] || !results[selectedSession][selectedTerm]) {
+      return [];
+    }
+    return results[selectedSession][selectedTerm] || [];
+  };
 
   // Grade scale - corrected to match actual score ranges
   const gradeScale = [
@@ -83,7 +138,6 @@ const StudentResults = () => {
     }
   };
 
-  const currentResults = results[selectedTerm] || [];
   // Helper to process results and calculate totals
   const getScaledResults = (resultsArr) => resultsArr.map(result => {
     // Convert scores to numbers and ensure they're valid
@@ -137,6 +191,7 @@ const StudentResults = () => {
   };
 
   // Calculate all derived values
+  const currentResults = getCurrentResults();
   const scaledResults = getScaledResults(currentResults);
   const totalScore = scaledResults.reduce((sum, result) => sum + result.total, 0);
   const averageScore = scaledResults.length > 0 ? (totalScore / scaledResults.length).toFixed(1) : 0;
@@ -265,46 +320,61 @@ const StudentResults = () => {
   }
 
   // Generate clean HTML content for download
-  const generateCleanHTML = () => {
+  const generateCleanHTML = (forPrint = false) => {
     const content = `
       <!DOCTYPE html>
       <html>
         <head>
           <title>Student Result - ${studentInfo.name}</title>
           <style>
+            @media print {
+              @page { 
+                size: A4; 
+                margin: 10mm;
+              }
+              body { 
+                margin: 0; 
+                padding: 0;
+              }
+              .no-print { 
+                display: none !important; 
+              }
+            }
             body { 
               font-family: Arial, sans-serif; 
-              margin: 20px; 
+              margin: ${forPrint ? '0' : '20px'}; 
+              padding: ${forPrint ? '10mm' : '0'};
               background: white;
+              font-size: ${forPrint ? '10px' : '14px'};
             }
             .result-content { 
-              max-width: 800px; 
+              max-width: ${forPrint ? '100%' : '800px'}; 
               margin: 0 auto; 
             }
             .school-header { 
               text-align: center; 
-              margin-bottom: 30px; 
+              margin-bottom: ${forPrint ? '10px' : '30px'}; 
             }
             .school-logo { 
-              width: 80px; 
+              width: ${forPrint ? '60px' : '80px'}; 
               height: auto; 
-              margin: 0 auto 10px; 
+              margin: 0 auto ${forPrint ? '5px' : '10px'}; 
               display: block; 
             }
             .school-name { 
-              font-size: 24px; 
+              font-size: ${forPrint ? '16px' : '24px'}; 
               font-weight: bold; 
-              margin: 10px 0; 
+              margin: ${forPrint ? '5px 0' : '10px 0'}; 
             }
             .school-address { 
-              font-size: 14px; 
+              font-size: ${forPrint ? '10px' : '14px'}; 
               color: #666; 
-              margin-bottom: 20px; 
+              margin-bottom: ${forPrint ? '10px' : '20px'}; 
             }
             .student-info {
               background: #f9f9f9;
-              padding: 15px;
-              margin: 20px 0;
+              padding: ${forPrint ? '8px' : '15px'};
+              margin: ${forPrint ? '10px 0' : '20px 0'};
               border: 1px solid #ddd;
               border-radius: 5px;
             }
@@ -320,12 +390,12 @@ const StudentResults = () => {
             table { 
               width: 100%; 
               border-collapse: collapse; 
-              margin: 20px 0; 
-              font-size: 12px;
+              margin: ${forPrint ? '8px 0' : '20px 0'}; 
+              font-size: ${forPrint ? '9px' : '12px'};
             }
             th, td { 
               border: 1px solid #333; 
-              padding: 8px; 
+              padding: ${forPrint ? '4px' : '8px'}; 
               text-align: center; 
             }
             th { 
@@ -336,33 +406,35 @@ const StudentResults = () => {
             .remarks-section {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              margin: 20px 0;
+              gap: ${forPrint ? '10px' : '20px'};
+              margin: ${forPrint ? '10px 0' : '20px 0'};
             }
             .remark-box {
               border: 1px solid #ddd;
-              padding: 15px;
+              padding: ${forPrint ? '8px' : '15px'};
               background: #f9f9f9;
               border-radius: 5px;
+              font-size: ${forPrint ? '9px' : '12px'};
             }
             .remark-box h4 {
               margin: 0 0 10px 0;
               color: #333;
             }
             .grade-scale {
-              margin: 20px 0;
+              margin: ${forPrint ? '10px 0' : '20px 0'};
             }
             .grade-scale h4 {
-              margin-bottom: 10px;
+              margin-bottom: ${forPrint ? '5px' : '10px'};
+              font-size: ${forPrint ? '11px' : '14px'};
             }
             .grade-table {
-              font-size: 11px;
+              font-size: ${forPrint ? '8px' : '11px'};
             }
             .summary-stats {
               background: #e8f4f8;
-              padding: 15px;
+              padding: ${forPrint ? '8px' : '15px'};
               border-radius: 5px;
-              margin: 20px 0;
+              margin: ${forPrint ? '10px 0' : '20px 0'};
             }
             .stats-grid {
               display: grid;
@@ -376,12 +448,12 @@ const StudentResults = () => {
               border-radius: 3px;
             }
             .stat-value {
-              font-size: 18px;
+              font-size: ${forPrint ? '14px' : '18px'};
               font-weight: bold;
               color: #f30401;
             }
             .stat-label {
-              font-size: 12px;
+              font-size: ${forPrint ? '9px' : '12px'};
               color: #666;
             }
           </style>
@@ -394,7 +466,7 @@ const StudentResults = () => {
               <div class="school-address">${schoolInfo.address}</div>
             </div>
 
-            <h2 style="text-align: center; color: #f30401; margin: 20px 0;">View Academic Performance and Progress</h2>
+            <h2 style="text-align: center; color: #f30401; margin: ${forPrint ? '10px 0' : '20px 0'}; font-size: ${forPrint ? '14px' : '20px'};">STUDENT RESULT REPORT</h2>
 
             <div class="student-info">
               <h3>Student Information</h3>
@@ -511,55 +583,50 @@ const StudentResults = () => {
     }
   };
 
-  // Download as PDF - Simple approach
-  const handleDownloadPDF = () => {
+  // Download as PDF - Using backend PDF generation
+  const handleDownloadPDF = async () => {
     try {
-      const htmlContent = generateCleanHTML();
-      const newWindow = window.open('', '_blank');
-      newWindow.document.write(htmlContent);
-      newWindow.document.close();
+      // Validate that we have required data
+      if (!selectedTerm) {
+        showError('Please select a term to download the report card');
+        return;
+      }
+
+      if (!currentSession) {
+        showError('No academic session found. Please contact the administrator.');
+        return;
+      }
+
+      // Get current term from selectedTerm state
+      const termMapping = {
+        'First Term': 'first',
+        'Second Term': 'second',
+        'Third Term': 'third',
+      };
       
-      // Add download instruction
-      setTimeout(() => {
-        const instructions = newWindow.document.createElement('div');
-        instructions.innerHTML = `
-          <div style="position: fixed; top: 10px; left: 10px; background: #f30401; color: white; padding: 10px; border-radius: 5px; font-family: Arial; z-index: 1000;">
-            <strong>Kindly take a screenshot</strong> of this page to save as PDF
-            <button onclick="this.parentElement.remove()" style="margin-left: 10px; background: white; color: #f30401; border: none; padding: 5px; border-radius: 3px; cursor: pointer;">×</button>
-          </div>
-        `;
-        newWindow.document.body.appendChild(instructions);
-      }, 1000);
+      const term = termMapping[selectedTerm] || 'first';
+      
+      // Get academic session ID from selected session
+      const academicSessionId = currentSession?.id || null;
+      
+      const params = {
+        term: term,
+      };
+      
+      if (academicSessionId) {
+        params.academic_session_id = academicSessionId;
+      }
+      
+      await API.generateStudentReportCardSelf(params);
+      
+      showSuccess('PDF downloaded successfully!');
     } catch (error) {
-      alert('Failed to generate PDF. Please try again.');
+      const errorMessage = error.message || 'Failed to generate PDF report card. Please ensure you are logged in and have the required permissions.';
+      showError(errorMessage);
       console.error('PDF generation error:', error);
     }
   };
 
-  // Download as Image - Simple approach
-  const handleDownloadImage = () => {
-    try {
-      const htmlContent = generateCleanHTML();
-      const newWindow = window.open('', '_blank');
-      newWindow.document.write(htmlContent);
-      newWindow.document.close();
-      
-      // Add download instruction
-      setTimeout(() => {
-        const instructions = newWindow.document.createElement('div');
-        instructions.innerHTML = `
-          <div style="position: fixed; top: 10px; left: 10px; background: #28a745; color: white; padding: 10px; border-radius: 5px; font-family: Arial; z-index: 1000;">
-            <strong>Kindly take a screenshot</strong> of this page to save as image
-            <button onclick="this.parentElement.remove()" style="margin-left: 10px; background: white; color: #28a745; border: none; padding: 5px; border-radius: 3px; cursor: pointer;">×</button>
-          </div>
-        `;
-        newWindow.document.body.appendChild(instructions);
-      }, 1000);
-    } catch (error) {
-      alert('Failed to generate image. Please try again.');
-      console.error('Image generation error:', error);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -582,13 +649,18 @@ const StudentResults = () => {
           <div>
             <h2 className="text-xl font-semibold text-gray-900">{studentInfo.name}</h2>
             <p className="text-sm text-gray-500">
-              {studentInfo.class} • {studentInfo.admissionNumber} • {studentInfo.session}
+              {studentInfo.class} • {studentInfo.admissionNumber} • Current Session: {studentInfo.session}
             </p>
+            {admissionSession && (
+              <p className="text-xs text-gray-400 mt-1">
+                Admitted: {admissionSession.name} - {admissionTerm ? `${admissionTerm.charAt(0).toUpperCase() + admissionTerm.slice(1)} Term` : ''}
+              </p>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <div>
               <label htmlFor="session" className="block text-sm font-medium text-gray-700">
-                Session
+                Academic Session
               </label>
               <select
                 id="session"
@@ -596,9 +668,13 @@ const StudentResults = () => {
                 onChange={(e) => setSelectedSession(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                {sessions.map(session => (
-                  <option key={session} value={session}>{session}</option>
-                ))}
+                {availableSessions.length === 0 ? (
+                  <option value="">No sessions available</option>
+                ) : (
+                  availableSessions.map(session => (
+                    <option key={session} value={session}>{session}</option>
+                  ))
+                )}
               </select>
             </div>
             <div>
@@ -611,7 +687,7 @@ const StudentResults = () => {
                 onChange={(e) => setSelectedTerm(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                {terms.map(term => (
+                {getAvailableTerms().map(term => (
                   <option key={term} value={term}>{term}</option>
                 ))}
               </select>
@@ -860,13 +936,6 @@ const StudentResults = () => {
             style={{ backgroundColor: COLORS.primary.red }}
           >
             Download PDF
-          </button>
-          <button
-            onClick={handleDownloadImage}
-            className="px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 transition-opacity duration-200"
-            style={{ backgroundColor: COLORS.primary.red }}
-          >
-            Download Image
           </button>
         </div>
       )}

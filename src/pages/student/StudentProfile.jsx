@@ -25,12 +25,29 @@ const StudentProfile = () => {
   });
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [admissionSession, setAdmissionSession] = useState(null);
+
+  useEffect(() => {
+    const fetchSessionInfo = async () => {
+      try {
+        const response = await API.getCurrentAcademicSession();
+        const data = response.data || response;
+        if (data.session) setCurrentSession(data.session);
+        if (data.admission_session) setAdmissionSession(data.admission_session);
+      } catch (error) {
+        console.error('Error fetching session info:', error);
+      }
+    };
+    fetchSessionInfo();
+  }, []);
 
   const studentInfo = {
     admissionNumber: user?.admission_number || 'Loading...',
     class: user?.school_class?.name || 'Loading...',
-    session: '2024/2025',
+    session: currentSession?.name || 'Not Set',
     dateAdmitted: user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Loading...',
+    admissionSession: admissionSession?.name || 'N/A',
     studentId: user?.id || 'Loading...',
     bloodGroup: user?.blood_group || 'N/A',
     genotype: user?.genotype || 'N/A',

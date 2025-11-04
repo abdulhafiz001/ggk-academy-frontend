@@ -9,13 +9,27 @@ const StudentDashboard = () => {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [admissionSession, setAdmissionSession] = useState(null);
   const { showError } = useNotification();
 
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      fetchSessionInfo();
     }
   }, [user]);
+
+  const fetchSessionInfo = async () => {
+    try {
+      const response = await API.getCurrentAcademicSession();
+      const data = response.data || response;
+      if (data.session) setCurrentSession(data.session);
+      if (data.admission_session) setAdmissionSession(data.admission_session);
+    } catch (error) {
+      console.error('Error fetching session info:', error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -32,7 +46,7 @@ const StudentDashboard = () => {
     name: user ? `${user.first_name} ${user.last_name}` : '',
     admissionNumber: user?.admission_number || '',
     class: user?.school_class?.name || 'No Class Assigned',
-    session: "2024/2025",
+    session: currentSession?.name || 'Not Set',
     formTeacher: user?.school_class?.form_teacher?.name || 'Not Assigned'
   };
 

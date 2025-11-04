@@ -12,10 +12,27 @@ const StudentSubjects = () => {
   const { user } = useAuth();
   const { showError } = useNotification();
 
+  const [currentSession, setCurrentSession] = useState(null);
+  const [admissionSession, setAdmissionSession] = useState(null);
+
+  useEffect(() => {
+    const fetchSessionInfo = async () => {
+      try {
+        const response = await API.getCurrentAcademicSession();
+        const data = response.data || response;
+        if (data.session) setCurrentSession(data.session);
+        // Note: admission session would come from student profile
+      } catch (error) {
+        console.error('Error fetching session info:', error);
+      }
+    };
+    fetchSessionInfo();
+  }, []);
+
   const studentInfo = {
     name: user ? `${user.first_name} ${user.last_name}` : "Loading...",
     class: user?.school_class?.name || "Loading...",
-    session: "2024/2025"
+    session: currentSession?.name || "Not Set"
   };
 
   // Fetch student subjects from backend
