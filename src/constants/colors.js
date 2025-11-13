@@ -1,9 +1,9 @@
-// Holy Child Result Platform Color Constants
+// G-LOVE ACADEMY Result Platform Color Constants
 export const COLORS = {
   // Primary Brand Colors
   primary: {
-    red: '#fa0001',      // Main brand red
-    blue: '#0201fb',     // Brand blue
+    red: '#aecb1f',      // Main brand color (green)
+    blue: '#382f89',     // Secondary brand color (purple)
     yellow: '#e8bf41',   // Brand yellow/gold (keeping for accents)
   },
   

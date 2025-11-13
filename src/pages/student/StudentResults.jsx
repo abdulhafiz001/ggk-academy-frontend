@@ -13,6 +13,7 @@ const StudentResults = () => {
   const [currentSession, setCurrentSession] = useState(null);
   const [admissionSession, setAdmissionSession] = useState(null);
   const [admissionTerm, setAdmissionTerm] = useState(null);
+  const [studentSubjects, setStudentSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { showError, showSuccess } = useNotification();
@@ -25,10 +26,35 @@ const StudentResults = () => {
   };
 
   const schoolInfo = {
-    name: 'Holy Child School',
-    logo: '/images/holyChildLogo.jpeg',
-    address: '',
+    name: 'G-LOVE ACADEMY',
+    logo: '/images/G-LOVE ACADEMY.jpeg',
+    address: 'BESIDE ASSEMBLIES OF GOD CHURCH ZONE 9 LUGBE ABUJA',
   };
+
+  // Fetch student subjects
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await API.getStudentSubjects();
+        const subjectsData = response.data || [];
+        // Extract subject IDs from the response
+        const subjectIds = subjectsData.map(subject => {
+          // Handle both direct subject object and nested subject
+          if (subject.subject && subject.subject.id) {
+            return subject.subject.id;
+          } else if (subject.id) {
+            return subject.id;
+          }
+          return null;
+        }).filter(id => id !== null);
+        setStudentSubjects(subjectIds);
+      } catch (err) {
+        console.error('Error fetching student subjects:', err);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
 
   // Fetch results data
   useEffect(() => {
@@ -58,15 +84,17 @@ const StudentResults = () => {
         setAvailableSessions(sessions);
         
         // Set default selected session (current or first available)
+        let defaultSession = '';
         if (responseData.current_session) {
-          setSelectedSession(responseData.current_session.name);
+          defaultSession = responseData.current_session.name;
         } else if (sessions.length > 0) {
-          setSelectedSession(sessions[0]);
+          defaultSession = sessions[0];
         }
+        setSelectedSession(defaultSession);
         
         // Set default selected term for the selected session
-        if (selectedSession && resultsData[selectedSession]) {
-          const terms = Object.keys(resultsData[selectedSession]);
+        if (defaultSession && resultsData[defaultSession]) {
+          const terms = Object.keys(resultsData[defaultSession]);
           if (terms.length > 0) {
             setSelectedTerm(terms[0]);
           }
@@ -195,6 +223,59 @@ const StudentResults = () => {
   const scaledResults = getScaledResults(currentResults);
   const totalScore = scaledResults.reduce((sum, result) => sum + result.total, 0);
   const averageScore = scaledResults.length > 0 ? (totalScore / scaledResults.length).toFixed(1) : 0;
+
+  // Check if all subjects have complete scores recorded
+  const areAllScoresComplete = () => {
+    // If no subjects assigned, return false
+    if (!studentSubjects || studentSubjects.length === 0) {
+      return false;
+    }
+
+    // If no results for selected session/term, return false
+    if (!currentResults || currentResults.length === 0) {
+      return false;
+    }
+
+    // Get all subject IDs from current results
+    const resultSubjectIds = currentResults.map(result => {
+      // Check for direct subject_id property
+      if (result.subject_id) {
+        return result.subject_id;
+      }
+      // Check for nested subject object with id
+      if (result.subject) {
+        if (typeof result.subject === 'object' && result.subject.id) {
+          return result.subject.id;
+        }
+        // If subject is just an ID (number)
+        if (typeof result.subject === 'number') {
+          return result.subject;
+        }
+      }
+      return null;
+    }).filter(id => id !== null);
+
+    // Check if all student subjects have results
+    const allSubjectsHaveResults = studentSubjects.every(subjectId => 
+      resultSubjectIds.includes(subjectId)
+    );
+
+    if (!allSubjectsHaveResults) {
+      return false;
+    }
+
+    // Check if all results have complete scores (first_ca, second_ca, exam_score)
+    const allScoresComplete = currentResults.every(result => {
+      const firstCA = result.first_ca !== null && result.first_ca !== undefined;
+      const secondCA = result.second_ca !== null && result.second_ca !== undefined;
+      const exam = result.exam_score !== null && result.exam_score !== undefined;
+      return firstCA && secondCA && exam;
+    });
+
+    return allScoresComplete;
+  };
+
+  const canDownloadOrPrint = areAllScoresComplete();
 
   // Generate remarks based on average score
   let teacherRemark = '';
@@ -450,7 +531,7 @@ const StudentResults = () => {
             .stat-value {
               font-size: ${forPrint ? '14px' : '18px'};
               font-weight: bold;
-              color: #f30401;
+              color: #aecb1f;
             }
             .stat-label {
               font-size: ${forPrint ? '9px' : '12px'};
@@ -657,16 +738,18 @@ const StudentResults = () => {
               </p>
             )}
           </div>
-          <div className="flex items-center space-x-4">
-            <div>
-              <label htmlFor="session" className="block text-sm font-medium text-gray-700">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end space-y-3 sm:space-y-0 sm:space-x-4">
+            <div className="w-full sm:w-auto">
+              <label htmlFor="session" className="block text-sm font-medium text-gray-700 mb-1">
                 Academic Session
               </label>
               <select
                 id="session"
                 value={selectedSession}
-                onChange={(e) => setSelectedSession(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                onChange={(e) => {
+                  setSelectedSession(e.target.value);
+                }}
+                className="block w-full sm:w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 {availableSessions.length === 0 ? (
                   <option value="">No sessions available</option>
@@ -677,19 +760,24 @@ const StudentResults = () => {
                 )}
               </select>
             </div>
-            <div>
-              <label htmlFor="term" className="block text-sm font-medium text-gray-700">
+            <div className="w-full sm:w-auto">
+              <label htmlFor="term" className="block text-sm font-medium text-gray-700 mb-1">
                 Term
               </label>
               <select
                 id="term"
                 value={selectedTerm}
                 onChange={(e) => setSelectedTerm(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={!selectedSession || getAvailableTerms().length === 0}
+                className="block w-full sm:w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                {getAvailableTerms().map(term => (
-                  <option key={term} value={term}>{term}</option>
-                ))}
+                {getAvailableTerms().length === 0 ? (
+                  <option value="">No terms available</option>
+                ) : (
+                  getAvailableTerms().map(term => (
+                    <option key={term} value={term}>{term}</option>
+                  ))
+                )}
               </select>
             </div>
           </div>
@@ -923,20 +1011,30 @@ const StudentResults = () => {
       </div>
       {/* Print/Download Actions */}
       {scaledResults.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-4 justify-end">
-          <button
-            onClick={handlePrintResult}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
-          >
-            Print Results
-          </button>
-          <button
-            onClick={handleDownloadPDF}
-            className="px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 transition-opacity duration-200"
-            style={{ backgroundColor: COLORS.primary.red }}
-          >
-            Download PDF
-          </button>
+        <div className="mt-6">
+          {canDownloadOrPrint ? (
+            <div className="flex flex-wrap gap-4 justify-end">
+              <button
+                onClick={handlePrintResult}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
+              >
+                Print Results
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 transition-opacity duration-200"
+                style={{ backgroundColor: COLORS.primary.red }}
+              >
+                Download PDF
+              </button>
+            </div>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> Download and Print options will be available once all subjects have complete scores recorded (First CA, Second CA, and Exam scores).
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

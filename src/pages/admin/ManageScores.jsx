@@ -45,7 +45,12 @@ const ManageScores = () => {
   const [studentScores, setStudentScores] = useState({});
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [importModal, setImportModal] = useState({ isOpen: false, importing: false });
+  const [importModal, setImportModal] = useState({ 
+    isOpen: false, 
+    importing: false, 
+    selectedClassId: null, 
+    selectedSubjectId: null 
+  });
   const [importResults, setImportResults] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
   const [currentTerm, setCurrentTerm] = useState(null);
@@ -83,8 +88,13 @@ const ManageScores = () => {
 
   // Refresh scores when class or subject changes
   useEffect(() => {
+    // Clear scores immediately when subject changes to prevent showing old data
     if (selectedClass && selectedSubject && Array.isArray(students) && students.length > 0) {
-      loadStudentScores(students);
+      // Pass current class and subject explicitly to avoid closure issues
+      loadStudentScores(students, selectedClass, selectedSubject);
+    } else {
+      // Clear scores if class/subject/students are not available
+      setStudentScores({});
     }
   }, [selectedClass, selectedSubject, students]);
 
@@ -92,7 +102,19 @@ const ManageScores = () => {
     try {
       setLoading(true);
       const response = await API.getTeacherAssignmentsForScores();
-      const assignments = response.data || response;
+      console.log('Teacher assignments response:', response);
+      
+      // Handle different response formats
+      let assignments = [];
+      if (Array.isArray(response)) {
+        assignments = response;
+      } else if (response?.data) {
+        assignments = Array.isArray(response.data) ? response.data : [];
+      } else if (response?.data?.data) {
+        assignments = Array.isArray(response.data.data) ? response.data.data : [];
+      }
+      
+      console.log('Processed assignments:', assignments);
       setTeacherAssignments(assignments);
 
       // The backend returns classes with subjects, so we can use them directly
@@ -101,9 +123,10 @@ const ManageScores = () => {
       // Extract all unique subjects from all classes
       const allSubjects = [];
       assignments.forEach(cls => {
-        if (cls.subjects) {
-          cls.subjects.forEach(subject => {
-            if (!allSubjects.find(s => s.id === subject.id)) {
+        if (cls && cls.subjects) {
+          const subjects = Array.isArray(cls.subjects) ? cls.subjects : [];
+          subjects.forEach(subject => {
+            if (subject && subject.id && !allSubjects.find(s => s.id === subject.id)) {
               allSubjects.push(subject);
             }
           });
@@ -111,6 +134,8 @@ const ManageScores = () => {
       });
 
       setAvailableSubjects(allSubjects);
+      console.log('Available classes set:', assignments);
+      console.log('Available subjects set:', allSubjects);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching teacher assignments:', error);
@@ -171,26 +196,33 @@ const ManageScores = () => {
       const studentsData = response.data || response;
       setStudents(studentsData);
       
-      // Load existing scores for these students
-      await loadStudentScores(studentsData);
+      // Load existing scores for these students - pass class and subject explicitly
+      await loadStudentScores(studentsData, selectedClass, selectedSubject);
     } catch (error) {
       console.error('Error fetching class students:', error);
       showError('Failed to load students for the selected class and subject');
     }
   };
 
-  const loadStudentScores = async (studentsList) => {
+  const loadStudentScores = async (studentsList, classId = null, subjectId = null) => {
     try {
-      console.log('Loading scores for students:', studentsList);
-      console.log('Selected class:', selectedClass, 'Selected subject:', selectedSubject);
+      // Use provided parameters or fall back to state (to avoid closure issues)
+      const currentClass = classId || selectedClass;
+      const currentSubject = subjectId || selectedSubject;
       
-      if (!studentsList || studentsList.length === 0) {
+      console.log('Loading scores for students:', studentsList);
+      console.log('Selected class:', currentClass, 'Selected subject:', currentSubject);
+      
+      if (!studentsList || studentsList.length === 0 || !currentClass || !currentSubject) {
         setStudentScores({});
         return;
       }
       
+      // Clear scores first to prevent showing old data
+      setStudentScores({});
+      
       const scoresPromises = studentsList.map(student => 
-        API.getStudentScores(student.id, { class_id: selectedClass, subject_id: selectedSubject })
+        API.getStudentScores(student.id, { class_id: currentClass, subject_id: currentSubject })
       );
       
       const scoresResponses = await Promise.all(scoresPromises);
@@ -206,7 +238,10 @@ const ManageScores = () => {
         
         if (Array.isArray(studentScores)) {
           studentScores.forEach(score => {
-            scoresMap[student.id][score.term] = score;
+            // Verify the score belongs to the current subject to prevent cross-contamination
+            if (score.subject_id == currentSubject || (score.subject && score.subject.id == currentSubject)) {
+              scoresMap[student.id][score.term] = score;
+            }
           });
         }
       });
@@ -230,6 +265,18 @@ const ManageScores = () => {
     setSelectedSubject(subjectId);
     setStudents([]);
     setStudentScores({});
+    // Close modal and clear form when subject changes to prevent showing wrong subject's data
+    setShowAddForm(false);
+    setEditingScore(null);
+    setSelectedStudent(null);
+    setScores({
+      first_ca: '',
+      second_ca: '',
+      exam_score: '',
+      total_score: '',
+      grade: '',
+      remark: ''
+    });
   };
 
   const handleScoreChange = (field, value) => {
@@ -327,6 +374,13 @@ const ManageScores = () => {
   };
 
   const handleEditScore = (student, score) => {
+    // Verify the score belongs to the current subject before editing
+    const scoreSubjectId = score.subject_id || (score.subject && score.subject.id);
+    if (scoreSubjectId != selectedSubject) {
+      showError('This score does not belong to the selected subject. Please select the correct subject first.');
+      return;
+    }
+    
     console.log('Editing score:', score);
     setSelectedStudent(student);
     setEditingScore(score);
@@ -344,18 +398,42 @@ const ManageScores = () => {
     // Ensure the form shows the correct student
     console.log('Form opened for student:', student.first_name, student.last_name);
     console.log('Editing score data:', score);
+    console.log('Current subject:', selectedSubject, 'Score subject:', scoreSubjectId);
   };
 
   // Load existing scores when opening form for a specific student and term
-  const loadExistingScore = async (studentId, term) => {
+  const loadExistingScore = async (studentId, term, classId = null, subjectId = null) => {
     try {
+      // Use provided parameters or fall back to state (to avoid closure issues)
+      const currentClass = classId || selectedClass;
+      const currentSubject = subjectId || selectedSubject;
+      
+      if (!currentClass || !currentSubject) {
+        // Clear form if no class/subject selected
+        setEditingScore(null);
+        setScores({
+          first_ca: '',
+          second_ca: '',
+          exam_score: '',
+          total_score: '',
+          grade: '',
+          remark: ''
+        });
+        setTerm(term);
+        return;
+      }
+      
       const response = await API.getStudentScores(studentId, { 
-        class_id: selectedClass, 
-        subject_id: selectedSubject 
+        class_id: currentClass, 
+        subject_id: currentSubject 
       });
       
       const scores = response.data || response || [];
-      const existingScore = scores.find(score => score.term === term);
+      // Find score for the term AND verify it belongs to the current subject
+      const existingScore = scores.find(score => 
+        score.term === term && 
+        (score.subject_id == currentSubject || (score.subject && score.subject.id == currentSubject))
+      );
       
       if (existingScore) {
         setEditingScore(existingScore);
@@ -414,7 +492,7 @@ const ManageScores = () => {
     
     // Refresh scores to ensure table is up to date
     if (Array.isArray(students) && students.length > 0) {
-      loadStudentScores(students);
+      loadStudentScores(students, selectedClass, selectedSubject);
     }
   };
 
@@ -488,7 +566,15 @@ const ManageScores = () => {
             Export
           </button>
           <button 
-            onClick={() => setImportModal({ isOpen: true, importing: false })}
+            onClick={() => {
+              console.log('Opening import modal. Available classes:', availableClasses);
+              setImportModal({ 
+                isOpen: true, 
+                importing: false,
+                selectedClassId: null,
+                selectedSubjectId: null
+              });
+            }}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
             <Upload className="mr-2 h-4 w-4" />
@@ -599,7 +685,7 @@ const ManageScores = () => {
                 Add Score
               </button>
                 <button
-                  onClick={() => Array.isArray(students) && students.length > 0 && loadStudentScores(students)}
+                  onClick={() => Array.isArray(students) && students.length > 0 && loadStudentScores(students, selectedClass, selectedSubject)}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                   title="Refresh Scores"
                 >
@@ -759,7 +845,26 @@ const ManageScores = () => {
                           {/* Show + button only if no scores exist for this student */}
                           {Object.keys(studentScore).length === 0 && (
                             <button
-                              onClick={() => setShowAddForm(true)}
+                              onClick={() => {
+                                // Clear form and set student when opening modal
+                                setSelectedStudent(student);
+                                setEditingScore(null);
+                                setScores({
+                                  first_ca: '',
+                                  second_ca: '',
+                                  exam_score: '',
+                                  total_score: '',
+                                  grade: '',
+                                  remark: ''
+                                });
+                                // Set term to current term if available
+                                if (currentTerm && currentTerm.name) {
+                                  setTerm(currentTerm.name);
+                                } else {
+                                  setTerm('first');
+                                }
+                                setShowAddForm(true);
+                              }}
                               className="text-red-600 hover:text-red-900"
                               title="Add Score"
                             >
@@ -826,8 +931,9 @@ const ManageScores = () => {
                       const newTerm = e.target.value;
                       setTerm(newTerm);
                       // Load existing score for this term if student is selected
+                      // Pass current class and subject explicitly to avoid closure issues
                       if (selectedStudent) {
-                        loadExistingScore(selectedStudent.id, newTerm);
+                        loadExistingScore(selectedStudent.id, newTerm, selectedClass, selectedSubject);
                       }
                     }}
                     disabled={editingScore !== null}
@@ -985,15 +1091,20 @@ const ManageScores = () => {
         </div>
       )}
 
-      {/* Import Modal */}
-      {importModal.isOpen && (
+      {/* Import Modal - Only for Teachers */}
+      {importModal.isOpen && user?.role === 'teacher' && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
           <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Import Scores from Excel/CSV</h3>
                 <button
-                  onClick={() => setImportModal({ isOpen: false, importing: false })}
+                  onClick={() => setImportModal({ 
+                    isOpen: false, 
+                    importing: false, 
+                    selectedClassId: null, 
+                    selectedSubjectId: null 
+                  })}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-5 h-5" />
@@ -1003,27 +1114,132 @@ const ManageScores = () => {
               <div className="mb-4">
                 <p className="text-sm text-gray-600 mb-4">
                   Upload an Excel (.xlsx, .xls) or CSV file containing score data. 
-                  Download the template below to see the required format.
+                  <strong className="block mt-2">First, select a class and subject below, then download the template.</strong>
                 </p>
                 <button
                   onClick={async () => {
+                    if (!importModal.selectedClassId || !importModal.selectedSubjectId) {
+                      showError('Please select a class and subject first before downloading the template');
+                      return;
+                    }
                     try {
-                      await API.downloadScoreTemplate();
-                      showSuccess('Template downloaded');
+                      await API.downloadScoreTemplateTeacher(
+                        importModal.selectedClassId,
+                        importModal.selectedSubjectId
+                      );
+                      showSuccess('Template downloaded successfully');
                     } catch (error) {
-                      showError('Failed to download template');
+                      showError(error.response?.data?.message || error.message || 'Failed to download template');
+                      console.error('Template download error:', error);
                     }
                   }}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  disabled={!importModal.selectedClassId || !importModal.selectedSubjectId}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400"
+                  title={!importModal.selectedClassId || !importModal.selectedSubjectId ? 'Please select a class and subject first' : 'Download template with pre-filled student data'}
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download Template
                 </button>
               </div>
 
+              {/* Class Selection - Required before import */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select File
+                  Select Class <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={importModal.selectedClassId || ''}
+                  onChange={(e) => {
+                    const classId = e.target.value;
+                    setImportModal({ 
+                      ...importModal, 
+                      selectedClassId: classId,
+                      selectedSubjectId: '' // Clear subject when class changes
+                    });
+                  }}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  required
+                >
+                  <option value="">-- Select a class --</option>
+                  {availableClasses && availableClasses.length > 0 ? (
+                    availableClasses.map((classItem) => {
+                      // For teachers, availableClasses already contains only their assigned classes
+                      // For admins, show all classes
+                      const classId = classItem.id || classItem.class?.id;
+                      const className = classItem.name || classItem.class?.name;
+                      
+                      if (!classId || !className) {
+                        console.warn('Invalid class item:', classItem);
+                        return null;
+                      }
+                      
+                      return (
+                        <option key={classId} value={classId}>
+                          {className}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    <option value="" disabled>No classes available. Please contact admin.</option>
+                  )}
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Select the class for which you want to import scores. Only students in this class will be imported.
+                </p>
+              </div>
+
+              {/* Subject Selection - Required before import */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Subject <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={importModal.selectedSubjectId || ''}
+                  onChange={(e) => setImportModal({ 
+                    ...importModal, 
+                    selectedSubjectId: e.target.value 
+                  })}
+                  disabled={!importModal.selectedClassId}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  required
+                >
+                  <option value="">-- Select a subject --</option>
+                  {importModal.selectedClassId && (() => {
+                    // Find the selected class
+                    const selectedClass = availableClasses.find(c => {
+                      const classId = c.id || c.class?.id;
+                      return classId == importModal.selectedClassId;
+                    });
+                    
+                    // Get subjects from the selected class
+                    const subjects = selectedClass?.subjects || [];
+                    
+                    // For teachers, subjects are already filtered by backend
+                    // For admins, show all subjects
+                    return subjects.map((subject) => {
+                      const subjectId = subject.id || subject.subject?.id;
+                      const subjectName = subject.name || subject.subject?.name;
+                      
+                      if (!subjectId || !subjectName) return null;
+                      
+                      return (
+                        <option key={subjectId} value={subjectId}>
+                          {subjectName}
+                        </option>
+                      );
+                    });
+                  })()}
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  {!importModal.selectedClassId 
+                    ? 'Please select a class first'
+                    : 'Select the subject for which you want to import scores.'}
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select File <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="file"
@@ -1032,16 +1248,46 @@ const ManageScores = () => {
                     const file = e.target.files[0];
                     if (!file) return;
 
+                    if (!importModal.selectedClassId) {
+                      showError('Please select a class first');
+                      return;
+                    }
+
+                    if (!importModal.selectedSubjectId) {
+                      showError('Please select a subject first');
+                      return;
+                    }
+
+                    // Validate that students in the selected class exist
+                    try {
+                      const classStudents = await API.getStudentsForClassSubject(
+                        importModal.selectedClassId, 
+                        importModal.selectedSubjectId
+                      );
+                      const studentsList = classStudents.data || classStudents || [];
+                      
+                      if (studentsList.length === 0) {
+                        showError('No students found in the selected class and subject combination. Please verify your selection.');
+                        return;
+                      }
+                    } catch (error) {
+                      showError('Failed to validate class and subject. Please check your selection.');
+                      return;
+                    }
+
                     setImportModal({ ...importModal, importing: true });
                     try {
-                      const importMethod = user?.role === 'teacher' ? API.importScoresTeacher : API.importScores;
-                      const result = await importMethod(file);
+                      const result = await API.importScoresTeacher(
+                        file,
+                        importModal.selectedClassId,
+                        importModal.selectedSubjectId
+                      );
                       setImportResults(result);
                       showSuccess(`Import completed: ${result.success_count} successful, ${result.error_count} errors`);
                       
                       // Refresh scores if class and subject are selected
                       if (selectedClass && selectedSubject && students.length > 0) {
-                        loadStudentScores(students);
+                        loadStudentScores(students, selectedClass, selectedSubject);
                       }
                     } catch (error) {
                       showError(error.message || 'Failed to import scores');
@@ -1050,7 +1296,7 @@ const ManageScores = () => {
                     }
                   }}
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  disabled={importModal.importing}
+                  disabled={importModal.importing || !importModal.selectedClassId || !importModal.selectedSubjectId}
                 />
               </div>
 
@@ -1086,7 +1332,12 @@ const ManageScores = () => {
               <div className="flex justify-end mt-6">
                 <button
                   onClick={() => {
-                    setImportModal({ isOpen: false, importing: false });
+                    setImportModal({ 
+                      isOpen: false, 
+                      importing: false, 
+                      selectedClassId: null, 
+                      selectedSubjectId: null 
+                    });
                     setImportResults(null);
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"

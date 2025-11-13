@@ -42,7 +42,7 @@ const AdminLayout = () => {
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
       </div>
     );
   }
@@ -91,10 +91,10 @@ const AdminLayout = () => {
             </div>
             <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
               <div className="flex-shrink-0 flex items-center px-4">
-                <div className="h-8 w-8 bg-red-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">H</span>
+                <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.primary.red }}>
+                  <span className="text-white font-bold text-sm">G</span>
                 </div>
-                <span className="ml-2 text-lg font-bold text-gray-900">Holy Child</span>
+                <span className="ml-2 text-lg font-bold text-gray-900">G-LOVE ACADEMY</span>
               </div>
               <nav className="mt-5 px-2 space-y-1">
                 {navigation.map((item) => {
@@ -105,9 +105,10 @@ const AdminLayout = () => {
                       to={item.href}
                       className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                         isActive(item.href)
-                          ? 'text-white bg-red-600'
+                          ? 'text-white'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
+                      style={isActive(item.href) ? { backgroundColor: COLORS.primary.red } : {}}
                       onClick={() => setSidebarOpen(false)}
                     >
                       <Icon className="mr-3 h-5 w-5" />
@@ -147,10 +148,10 @@ const AdminLayout = () => {
         <div className="flex flex-col flex-1 min-h-0 border-r border-gray-200 bg-white shadow-lg">
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-red-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">H</span>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.primary.red }}>
+                <span className="text-white font-bold text-sm">G</span>
               </div>
-              <span className="ml-2 text-lg font-bold text-gray-900">Holy Child</span>
+              <span className="ml-2 text-lg font-bold text-gray-900">G-LOVE ACADEMY</span>
             </div>
           </div>
 
@@ -164,9 +165,10 @@ const AdminLayout = () => {
                   to={item.href}
                   className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                     isActive(item.href)
-                      ? 'text-white bg-red-600'
+                      ? 'text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
+                  style={isActive(item.href) ? { backgroundColor: COLORS.primary.red } : {}}
                 >
                   <Icon className="mr-3 h-5 w-5" />
                   {item.name}
@@ -218,14 +220,7 @@ const AdminLayout = () => {
             <div className="flex-1 flex">
               <div className="w-full flex">
                 <div className="relative w-full text-gray-400 focus-within:text-gray-600">
-                  <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5" />
-                  </div>
-                  <input
-                    className="block w-full h-full pl-8 pr-3 py-2 border-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-0 focus:border-transparent"
-                    placeholder="Search students, classes, teachers..."
-                    type="search"
-                  />
+                  
                 </div>
               </div>
             </div>

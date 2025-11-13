@@ -57,7 +57,7 @@ const TeacherDashboard = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4" style={{ borderColor: COLORS.primary.red }}></div>
           <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
@@ -108,10 +108,20 @@ const TeacherDashboard = () => {
       case 'increase':
         return 'text-green-600 bg-green-100';
       case 'decrease':
-        return 'text-red-600 bg-red-100';
+        return ''; // Will use inline styles
       default:
         return 'text-blue-600 bg-blue-100';
     }
+  };
+
+  const getChangeColorStyle = (type) => {
+    if (type === 'decrease') {
+      return {
+        color: COLORS.primary.red,
+        backgroundColor: `${COLORS.primary.red}20`
+      };
+    }
+    return {};
   };
 
   const getChangeIcon = (type) => {
@@ -131,7 +141,7 @@ const TeacherDashboard = () => {
         {/* Header with Welcome Message */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="text-center">
-            <div className="mx-auto h-20 w-20 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto h-20 w-20 rounded-full flex items-center justify-center mb-4" style={{ background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
               <GraduationCap className="h-10 w-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -153,7 +163,10 @@ const TeacherDashboard = () => {
                   <div className="p-3 rounded-lg" style={{ backgroundColor: `${item.color}15` }}>
                     <Icon className="h-6 w-6" style={{ color: item.color }} />
                   </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getChangeColor(item.changeType)}`}>
+                  <span 
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getChangeColor(item.changeType)}`}
+                    style={getChangeColorStyle(item.changeType)}
+                  >
                           {getChangeIcon(item.changeType)}
                           <span className="ml-1">{item.change}</span>
                   </span>
@@ -179,7 +192,14 @@ const TeacherDashboard = () => {
               <div className="flex space-x-3">
                 <button
                   onClick={() => navigate('/admin/add-student')}
-                  className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                  className="inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+                  style={{ 
+                    backgroundColor: COLORS.primary.red
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = COLORS.primary.blue}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = COLORS.primary.red}
+                  onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${COLORS.primary.red}40`}
+                  onBlur={(e) => e.target.style.boxShadow = ''}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Student
@@ -326,13 +346,31 @@ const TeacherDashboard = () => {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <button 
               onClick={() => navigate('/admin/manage-scores')}
-                className="group p-6 border-2 border-dashed border-gray-200 rounded-xl hover:border-red-300 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200"
+                className="group p-6 border-2 border-dashed border-gray-200 rounded-xl focus:outline-none transition-all duration-200"
+                onMouseEnter={(e) => {
+                  e.target.style.borderColor = `${COLORS.primary.red}80`;
+                  e.target.style.backgroundColor = `${COLORS.primary.red}10`;
+                  const textSpan = e.target.querySelector('span');
+                  if (textSpan) textSpan.style.color = COLORS.primary.red;
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = '';
+                  e.target.style.backgroundColor = '';
+                  const textSpan = e.target.querySelector('span');
+                  if (textSpan) textSpan.style.color = '';
+                }}
+                onFocus={(e) => {
+                  e.target.style.boxShadow = `0 0 0 2px ${COLORS.primary.red}40`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.boxShadow = '';
+                }}
               >
                 <div className="text-center">
-                  <div className="mx-auto h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-red-200 transition-colors">
-                    <FileText className="h-6 w-6 text-red-600" />
+                  <div className="mx-auto h-12 w-12 rounded-lg flex items-center justify-center mb-3 transition-colors" style={{ backgroundColor: `${COLORS.primary.red}20` }}>
+                    <FileText className="h-6 w-6" style={{ color: COLORS.primary.red }} />
                   </div>
-                  <span className="block text-sm font-medium text-gray-900 group-hover:text-red-700">
+                  <span className="block text-sm font-medium text-gray-900">
                 Record Scores
               </span>
                 </div>
@@ -353,15 +391,15 @@ const TeacherDashboard = () => {
             </button>
               
             <button 
-              onClick={() => navigate('/admin/classes')}
+              onClick={() => navigate('/teacher/attendance')}
                 className="group p-6 border-2 border-dashed border-gray-200 rounded-xl hover:border-green-300 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200"
               >
                 <div className="text-center">
                   <div className="mx-auto h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
-                    <BookOpen className="h-6 w-6 text-green-600" />
+                    <UserCheck className="h-6 w-6 text-green-600" />
                   </div>
                   <span className="block text-sm font-medium text-gray-900 group-hover:text-green-700">
-                My Classes
+                Attendance
               </span>
                 </div>
             </button>

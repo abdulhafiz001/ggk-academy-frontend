@@ -65,10 +65,10 @@ const StudentSidebar = ({ isOpen, setIsOpen }) => {
             </div>
             <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
               <div className="flex-shrink-0 flex items-center px-4">
-                <div className="h-8 w-8 bg-red-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">H</span>
+                <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.primary.red }}>
+                  <span className="text-white font-bold text-sm">G</span>
                 </div>
-                <span className="ml-2 text-lg font-bold text-gray-900">Holy Child</span>
+                <span className="ml-2 text-lg font-bold text-gray-900">G-LOVE ACADEMY</span>
               </div>
               <nav className="mt-5 px-2 space-y-1">
                 {navigation.map((item) => (
@@ -77,9 +77,10 @@ const StudentSidebar = ({ isOpen, setIsOpen }) => {
                     to={item.href}
                     className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                       isActive(item.href)
-                        ? 'text-white bg-red-600'
+                        ? 'text-white'
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
+                    style={isActive(item.href) ? { backgroundColor: COLORS.primary.red } : {}}
                     onClick={() => setIsOpen(false)}
                   >
                     <item.icon className="mr-3 h-5 w-5" />
@@ -118,10 +119,10 @@ const StudentSidebar = ({ isOpen, setIsOpen }) => {
         <div className="flex flex-col flex-1 min-h-0 border-r border-gray-200 bg-white shadow-lg">
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-red-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">H</span>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.primary.red }}>
+                <span className="text-white font-bold text-sm">G</span>
               </div>
-              <span className="ml-2 text-lg font-bold text-gray-900">Holy Child</span>
+              <span className="ml-2 text-lg font-bold text-gray-900">G-LOVE ACADEMY</span>
             </div>
           </div>
 
@@ -133,9 +134,10 @@ const StudentSidebar = ({ isOpen, setIsOpen }) => {
                 to={item.href}
                 className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                   isActive(item.href)
-                    ? 'text-white bg-red-600'
+                    ? 'text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
+                style={isActive(item.href) ? { backgroundColor: COLORS.primary.red } : {}}
               >
                 <item.icon className="mr-3 h-5 w-5" />
                 {item.name}

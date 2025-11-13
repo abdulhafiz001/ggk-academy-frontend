@@ -1052,9 +1052,9 @@ const TeachersTab = () => {
     const cleanName = name.toLowerCase().replace(/[^a-z\s]/g, '').trim();
     const nameParts = cleanName.split(' ').filter(part => part.length > 0);
     if (nameParts.length >= 2) {
-      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.holychild`;
+      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.gloveacademy`;
     } else if (nameParts.length === 1) {
-      return `${nameParts[0]}.holychild`;
+      return `${nameParts[0]}.gloveacademy`;
     }
     return '';
   };
@@ -1085,7 +1085,7 @@ const TeachersTab = () => {
     try {
       const teacherData = {
         name: newTeacher.name,
-        email: newTeacher.email || `${newTeacher.username}@holychild.edu.ng`, // Generate email if not provided
+        email: newTeacher.email || `${newTeacher.username}@gloveacademy.edu.ng`, // Generate email if not provided
         username: newTeacher.username,
         password: newTeacher.password || 'password', // Use provided password or default
         role: 'teacher',
@@ -1289,12 +1289,12 @@ const TeachersTab = () => {
                 type="email"
                 value={newTeacher.email}
                 onChange={(e) => handleTeacherChange('email', e.target.value)}
-                placeholder="teacher@holychild.edu.ng"
+                        placeholder="teacher@gloveacademy.edu.ng"
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               />
               <p className="text-xs text-gray-500 mt-1">
-                If not provided, email will be auto-generated as: {newTeacher.username ? `${newTeacher.username}@holychild.edu.ng` : 'username@holychild.edu.ng'}
+                If not provided, email will be auto-generated as: {newTeacher.username ? `${newTeacher.username}@gloveacademy.edu.ng` : 'username@gloveacademy.edu.ng'}
               </p>
             </div>
             <div>
@@ -1945,9 +1945,9 @@ const AdminsTab = () => {
     const cleanName = name.toLowerCase().replace(/[^a-z\s]/g, '').trim();
     const nameParts = cleanName.split(' ').filter(part => part.length > 0);
     if (nameParts.length >= 2) {
-      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.holychild`;
+      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.gloveacademy`;
     } else if (nameParts.length === 1) {
-      return `${nameParts[0]}.holychild`;
+      return `${nameParts[0]}.gloveacademy`;
     }
     return '';
   };
@@ -2120,7 +2120,7 @@ const AdminsTab = () => {
                 type="email"
                 value={newAdmin.email}
                 onChange={(e) => handleAdminChange('email', e.target.value)}
-                placeholder="admin@holychild.edu.ng"
+                placeholder="admin@gloveacademy.edu.ng"
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               />

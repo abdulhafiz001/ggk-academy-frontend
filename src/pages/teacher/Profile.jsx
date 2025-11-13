@@ -102,7 +102,16 @@ const Profile = () => {
 
   const getRoleColor = (role) => {
     switch (role) {
-      case 'admin': return 'from-red-500 to-red-600';
+      case 'admin': return `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`;
+      case 'teacher': return 'from-blue-500 to-blue-600';
+      case 'student': return 'from-green-500 to-green-600';
+      default: return 'from-gray-500 to-gray-600';
+    }
+  };
+
+  const getRoleColorClass = (role) => {
+    switch (role) {
+      case 'admin': return '';
       case 'teacher': return 'from-blue-500 to-blue-600';
       case 'student': return 'from-green-500 to-green-600';
       default: return 'from-gray-500 to-gray-600';
@@ -181,7 +190,10 @@ const Profile = () => {
                     {getFullName()}
                   </h2>
                   <div className="flex items-center justify-center space-x-2 mb-3">
-                    <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r ${getRoleColor(user.role)} shadow-lg`}>
+                    <span 
+                      className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold text-white ${user.role !== 'admin' ? `bg-gradient-to-r ${getRoleColorClass(user.role)}` : ''} shadow-lg`}
+                      style={user.role === 'admin' ? { background: getRoleColor(user.role) } : {}}
+                    >
                       <Shield className="mr-2 h-4 w-4" />
                       {getRoleLabel(user.role)}
                     </span>
@@ -343,7 +355,7 @@ const Profile = () => {
                         value={editData.email}
                         onChange={(e) => handleEditChange('email', e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
-                        placeholder="teacher@holychild.edu.ng"
+                        placeholder="teacher@gloveacademy.edu.ng"
                       />
                     ) : (
                       <div className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100">

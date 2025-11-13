@@ -5,7 +5,8 @@ import { useNotification } from '../../contexts/NotificationContext';
 import API from '../../services/API';
 
 const StudentSubjects = () => {
-  const [selectedTerm, setSelectedTerm] = useState('Second Term');
+  const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedSession, setSelectedSession] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,15 +14,28 @@ const StudentSubjects = () => {
   const { showError } = useNotification();
 
   const [currentSession, setCurrentSession] = useState(null);
-  const [admissionSession, setAdmissionSession] = useState(null);
+  const [currentTerm, setCurrentTerm] = useState(null);
+  const [availableSessions, setAvailableSessions] = useState([]);
+  const [availableTerms, setAvailableTerms] = useState([]);
 
   useEffect(() => {
     const fetchSessionInfo = async () => {
       try {
         const response = await API.getCurrentAcademicSession();
         const data = response.data || response;
-        if (data.session) setCurrentSession(data.session);
-        // Note: admission session would come from student profile
+        if (data.session) {
+          setCurrentSession(data.session);
+          setSelectedSession(data.session.name);
+        }
+        if (data.term) {
+          setCurrentTerm(data.term);
+          setSelectedTerm(data.term.name);
+        }
+        // Fetch available sessions - we'll get them from results or make a separate call
+        // For now, if we have a current session, use it
+        if (data.session) {
+          setAvailableSessions([data.session.name]);
+        }
       } catch (error) {
         console.error('Error fetching session info:', error);
       }
@@ -114,27 +128,59 @@ const StudentSubjects = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 py-8">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Subjects</h1>
-              <p className="mt-1 text-lg text-gray-600">
-                Academic curriculum and course management
+              <h1 className="text-2xl font-bold text-gray-900">My Subjects</h1>
+              <p className="mt-1 text-sm text-gray-600">
+                View your academic subjects and course management
               </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <select
-                value={selectedTerm}
-                onChange={(e) => setSelectedTerm(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option>First Term</option>
-                <option>Second Term</option>
-                <option>Third Term</option>
-              </select>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+              <div className="w-full sm:w-auto">
+                <label htmlFor="session-select" className="block text-sm font-medium text-gray-700 mb-1">
+                  Academic Session
+                </label>
+                <select
+                  id="session-select"
+                  value={selectedSession}
+                  onChange={(e) => setSelectedSession(e.target.value)}
+                  className="block w-full sm:w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  {availableSessions.length === 0 ? (
+                    <option value="">No sessions available</option>
+                  ) : (
+                    availableSessions.map(session => (
+                      <option key={session} value={session}>{session}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <div className="w-full sm:w-auto">
+                <label htmlFor="term-select" className="block text-sm font-medium text-gray-700 mb-1">
+                  Term
+                </label>
+                <select
+                  id="term-select"
+                  value={selectedTerm}
+                  onChange={(e) => setSelectedTerm(e.target.value)}
+                  disabled={!selectedSession}
+                  className="block w-full sm:w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  {!selectedSession ? (
+                    <option value="">Select session first</option>
+                  ) : (
+                    <>
+                      <option value="First Term">First Term</option>
+                      <option value="Second Term">Second Term</option>
+                      <option value="Third Term">Third Term</option>
+                    </>
+                  )}
+                </select>
+              </div>
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -158,24 +204,15 @@ const StudentSubjects = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Student Overview */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
-                {studentInfo.name.split(' ').map(n => n[0]).join('')}
-              </div>
-              <h3 className="font-semibold text-gray-900">{studentInfo.name}</h3>
-              <p className="text-sm text-gray-600">{studentInfo.class}</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{totalSubjects}</div>
-              <p className="text-sm text-gray-600 mt-1">Total Subjects</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">{averageProgress}%</div>
-              <p className="text-sm text-gray-600 mt-1">Average Progress</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Student Info Card */}
+        <div className="bg-white shadow rounded-lg mb-6 p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">{studentInfo.name}</h2>
+              <p className="text-sm text-gray-500">
+                {studentInfo.class} • Current Session: {studentInfo.session}
+              </p>
             </div>
           </div>
         </div>

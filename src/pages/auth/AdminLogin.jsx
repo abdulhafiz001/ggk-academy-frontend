@@ -73,12 +73,12 @@ const AdminLogin = () => {
           <div className="text-center">
             <div className="mb-6">
               <img 
-                src="/images/holyChildLogo.jpeg" 
-                alt="Holy Child Logo" 
+                src="/images/G-LOVE ACADEMY.jpeg" 
+                alt="G-LOVE ACADEMY Logo" 
                 className="h-20 w-20 mx-auto mb-4"
               />
               <span className="text-2xl font-bold text-gray-900 block">
-                Holy Child School
+                G-LOVE ACADEMY
               </span>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -193,7 +193,7 @@ const AdminLogin = () => {
       {/* Right Side - Modern School Portal Welcome */}
 <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
   {/* Background with subtle school theme */}
-  <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-red-600">
+  <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom right, ${COLORS.primary.blue}, #9333ea, ${COLORS.primary.red})` }}>
     {/* Abstract educational pattern */}
     <div className="absolute inset-0 opacity-10">
       <div className="absolute top-10 left-10 w-20 h-20 border-2 border-white rounded-lg rotate-45"></div>
@@ -218,12 +218,12 @@ const AdminLogin = () => {
       <div className="mb-8">
         <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30 flex items-center justify-center">
           <img 
-            src="/images/holyChildLogo.jpeg" 
-            alt="Holy Child Logo" 
+            src="/images/G-LOVE ACADEMY.jpeg" 
+            alt="G-LOVE ACADEMY Logo" 
             className="w-16 h-16 rounded-xl"
           />
         </div>
-        <h2 className="text-3xl font-bold mb-2">Holy Child School</h2>
+        <h2 className="text-3xl font-bold mb-2">G-LOVE ACADEMY</h2>
         <p className="text-blue-100 text-lg">Staff Portal</p>
       </div>
 

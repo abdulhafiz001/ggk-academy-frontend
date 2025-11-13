@@ -67,7 +67,7 @@ const Home = () => {
     {
       name: "Mrs. Adebayo Kemi",
       role: "Parent of SS3 Student",
-      content: "Holy Child School has transformed my daughter's academic journey. The digital platform provides real-time insights into her progress, and the teachers are incredibly supportive. I can confidently say this is the best investment in her future.",
+      content: "G-LOVE ACADEMY has transformed my daughter's academic journey. The digital platform provides real-time insights into her progress, and the teachers are incredibly supportive. I can confidently say this is the best investment in her future.",
       rating: 5,
       avatar: "👩‍👧",
       student: "Aisha Adebayo - SS3A"
@@ -91,7 +91,7 @@ const Home = () => {
     {
       name: "Dr. Sarah Williams",
       role: "Principal",
-      content: "Holy Child School's digital platform has elevated our school to new heights. The comprehensive system ensures transparency, accountability, and excellence in academic management. Our students' performance has improved significantly.",
+      content: "G-LOVE ACADEMY's digital platform has elevated our school to new heights. The comprehensive system ensures transparency, accountability, and excellence in academic management. Our students' performance has improved significantly.",
       rating: 5,
       avatar: "👩‍💼",
       student: "School Principal"
@@ -103,7 +103,7 @@ const Home = () => {
       icon: Shield,
       title: "Bank-Level Security",
       description: "Advanced encryption and security protocols protect all academic data with 99.9% uptime guarantee and regular security audits.",
-      color: "from-red-500 to-pink-500",
+      color: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`,
       benefits: ["SSL Encryption", "Regular Backups", "Access Control", "Audit Trails"]
     },
     {
@@ -144,7 +144,7 @@ const Home = () => {
   ];
 
   const stats = [
-    { number: "1,500+", label: "Active Students", icon: Users, color: "from-red-500 to-pink-500", description: "Enrolled across all classes" },
+    { number: "1,500+", label: "Active Students", icon: Users, color: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`, description: "Enrolled across all classes" },
     { number: "28", label: "Academic Classes", icon: School, color: "from-blue-500 to-cyan-500", description: "From JSS1 to SS3" },
     { number: "92%", label: "Pass Rate", icon: Trophy, color: "from-yellow-500 to-orange-500", description: "WAEC & NECO results" },
     { number: "18+", label: "Years of Excellence", icon: Award, color: "from-green-500 to-emerald-500", description: "Educational leadership" },
@@ -169,18 +169,18 @@ const Home = () => {
             <div className="flex items-center group cursor-pointer">
               <div className="relative">
                 <img 
-                  src="/images/holyChildLogo.jpeg" 
-                  alt="Holy Child Logo" 
+                  src="/images/G-LOVE ACADEMY.jpeg" 
+                  alt="G-LOVE ACADEMY Logo" 
                   className="h-12 w-12 mr-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
                 />
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
               </div>
               <div>
-                <span className="text-2xl font-bold text-gray-900 hidden sm:block group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-red-600 group-hover:to-blue-600 transition-all duration-300">
-                  Holy Child School
+                <span className="text-2xl font-bold text-gray-900 hidden sm:block group-hover:text-transparent group-hover:bg-clip-text transition-all duration-300" style={{ backgroundImage: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
+                  G-LOVE ACADEMY
                 </span>
-                <span className="text-2xl font-bold text-gray-900 sm:hidden group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-red-600 group-hover:to-blue-600 transition-all duration-300">
-                  HCS
+                <span className="text-2xl font-bold text-gray-900 sm:hidden group-hover:text-transparent group-hover:bg-clip-text transition-all duration-300" style={{ backgroundImage: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
+                  GLA
                 </span>
                 <p className="text-sm text-gray-600 hidden sm:block">Excellence in Education</p>
               </div>
@@ -296,14 +296,14 @@ const Home = () => {
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-16 bg-white rounded-2xl shadow-lg flex items-center justify-center border border-gray-100">
                   <img 
-                    src="/images/holyChildLogo.jpeg" 
-                    alt="Holy Child Logo" 
+                    src="/images/G-LOVE ACADEMY.jpeg" 
+                    alt="G-LOVE ACADEMY Logo" 
                     className="h-12 w-12"
                   />
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Est. 2011</div>
-                  <div className="text-lg font-bold text-gray-900">Holy Child School</div>
+                  <div className="text-lg font-bold text-gray-900">G-LOVE ACADEMY</div>
                 </div>
               </div>
 
@@ -311,13 +311,13 @@ const Home = () => {
               <div className="space-y-4">
                 <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                   Nurturing Excellence in
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-blue-600">
+                  <span className="block text-transparent bg-clip-text" style={{ backgroundImage: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
                     Education
                   </span>
                 </h1>
                 <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
                   Empowering students with modern technology for academic success. 
-                  Access your results, track progress, and excel in your studies at Holy Child School.
+                  Access your results, track progress, and excel in your studies at G-LOVE ACADEMY.
                 </p>
               </div>
 
@@ -325,7 +325,8 @@ const Home = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/auth/student/login"
-                  className="group px-8 py-4 bg-gradient-to-r from-red-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center"
+                  className="group px-8 py-4 text-white font-semibold rounded-xl hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center"
+                  style={{ background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}
                 >
                   <GraduationCap className="h-5 w-5 mr-2" />
                   Student Portal
@@ -367,11 +368,11 @@ const Home = () => {
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.primary.red }}></div>
                         <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       </div>
-                      <div className="text-sm text-gray-500">Holy Child Portal</div>
+                      <div className="text-sm text-gray-500">G-LOVE ACADEMY Portal</div>
                     </div>
 
                     {/* Content */}
@@ -400,7 +401,7 @@ const Home = () => {
                         <span>87%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-red-500 to-blue-500 h-2 rounded-full" style={{width: '87%'}}></div>
+                        <div className="h-2 rounded-full" style={{width: '87%', background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`}}></div>
                       </div>
                     </div>
                   </div>
@@ -420,7 +421,7 @@ const Home = () => {
 
       {/* Features Section */}
       <section className="py-32 bg-gradient-to-br from-white via-gray-50 to-blue-50 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-blue-500/5 to-purple-500/5"></div>
+        <div className="absolute inset-0" style={{ background: `linear-gradient(to right, ${COLORS.primary.red}08, ${COLORS.primary.blue}08, #9333ea08)` }}></div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-24">
@@ -430,7 +431,7 @@ const Home = () => {
             </div>
             <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-8">
               Why Choose Our 
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-blue-600">
+              <span className="block text-transparent bg-clip-text" style={{ backgroundImage: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
                 Digital Platform?
               </span>
             </h2>
@@ -554,7 +555,7 @@ const Home = () => {
 
       {/* Testimonials Section */}
       <section className="py-32 bg-gradient-to-br from-white via-gray-50 to-blue-50 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-blue-500/5 to-purple-500/5"></div>
+        <div className="absolute inset-0" style={{ background: `linear-gradient(to right, ${COLORS.primary.red}08, ${COLORS.primary.blue}08, #9333ea08)` }}></div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-24">
@@ -639,7 +640,7 @@ const Home = () => {
           <h2 className="text-5xl md:text-6xl font-bold text-white mb-8">
             Ready to Join the 
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
-              Holy Child Family?
+              G-LOVE ACADEMY Family?
             </span>
           </h2>
           <p className="text-xl text-gray-300 mb-12 leading-relaxed max-w-4xl mx-auto">
@@ -715,24 +716,24 @@ const Home = () => {
               <div className="flex items-center mb-8">
                 <div className="relative">
                   <img 
-                    src="/images/holyChildLogo.jpeg" 
-                    alt="Holy Child Logo" 
+                    src="/images/G-LOVE ACADEMY.jpeg" 
+                    alt="G-LOVE ACADEMY Logo" 
                     className="h-16 w-16 mr-4"
                   />
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
                 </div>
                 <div>
-                  <span className="text-3xl font-bold">Holy Child School</span>
+                  <span className="text-3xl font-bold">G-LOVE ACADEMY</span>
                   <p className="text-blue-200 text-sm">Excellence in Education</p>
                 </div>
               </div>
               <p className="text-gray-300 mb-8 leading-relaxed text-lg max-w-2xl">
                 Nurturing students with cutting-edge digital tools for academic success. 
-                We are committed to providing world-class education through innovative technology and dedicated teaching at Holy Child School.
+                We are committed to providing world-class education through innovative technology and dedicated teaching at G-LOVE ACADEMY.
               </p>
               <div className="space-y-4">
                 <div className="flex items-center group">
-                  <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mr-4 group-hover:scale-110 transition-transform" style={{ background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
                     <MapPin className="h-6 w-6 text-white" />
                   </div>
                   <div>
@@ -746,7 +747,7 @@ const Home = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-white">Phone</div>
-                    <div className="text-gray-300">+234 123 456 7890</div>
+                    <div className="text-gray-300">08125275999</div>
                   </div>
                 </div>
                 <div className="flex items-center group">
@@ -755,7 +756,7 @@ const Home = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-white">Email</div>
-                    <div className="text-gray-300">info@holychild.edu.ng</div>
+                    <div className="text-gray-300">info@gloveacademy.edu.ng</div>
                   </div>
                 </div>
               </div>
@@ -788,11 +789,11 @@ const Home = () => {
                 </li>
                 <li className="flex items-center text-gray-300">
                   <Phone className="h-5 w-5 mr-3" />
-                  <span>+234 123 456 7890</span>
+                  <span>08125275999</span>
                 </li>
                 <li className="flex items-center text-gray-300">
                   <Mail className="h-5 w-5 mr-3" />
-                  <span>info@holychild.edu.ng</span>
+                  <span>info@gloveacademy.edu.ng</span>
                 </li>
               </ul>
               
@@ -806,7 +807,7 @@ const Home = () => {
                   <a href="#" className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
                     <Twitter className="h-5 w-5 text-white" />
                   </a>
-                  <a href="#" className="w-10 h-10 bg-gradient-to-r from-pink-500 to-red-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+                  <a href="#" className="w-10 h-10 rounded-full flex items-center justify-center hover:scale-110 transition-transform" style={{ background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
                     <Instagram className="h-5 w-5 text-white" />
                   </a>
                   <a href="#" className="w-10 h-10 bg-gradient-to-r from-blue-700 to-blue-800 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
@@ -821,7 +822,7 @@ const Home = () => {
           <div className="border-t border-white/20 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="text-gray-300 mb-4 md:mb-0">
-                <p>&copy; {new Date().getFullYear()} The Golden Crest Royal Academy. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} G-LOVE ACADEMY. All rights reserved.</p>
                 <p className="text-sm mt-1">Excellence in Education • Character Development • Academic Achievement</p>
               </div>
               <div className="flex space-x-6 text-sm text-gray-400">

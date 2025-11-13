@@ -18,6 +18,7 @@ import {
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import API from '../../services/API';
+import { COLORS } from '../../constants/colors';
 
 const AdminProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -277,7 +278,7 @@ const AdminProfile = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4" style={{ borderColor: COLORS.primary.red }}></div>
           <p className="text-gray-600 text-lg">Loading your profile...</p>
         </div>
       </div>
@@ -302,11 +303,11 @@ const AdminProfile = () => {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
             <div className="flex-1">
               <div className="flex items-center space-x-4 mb-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
                   <UserCircle className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-gray-900 via-red-900 to-indigo-900 bg-clip-text text-transparent">
+                  <h1 className="text-4xl font-bold text-gray-900 bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(to right, #111827, ${COLORS.primary.red}, #312e81)` }}>
                     Administrator Profile
                   </h1>
                   <p className="text-lg text-gray-600 mt-1">
@@ -319,14 +320,25 @@ const AdminProfile = () => {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setShowPasswordForm(true)}
-                  className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  style={{ '--tw-ring-color': COLORS.primary.red }}
                 >
                   <Key className="mr-2 h-5 w-5" />
                   Change Password
                 </button>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  style={{ 
+                    background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`,
+                    '--tw-ring-color': COLORS.primary.red
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary.blue}, ${COLORS.primary.red})`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`;
+                  }}
                 >
                   <Edit className="mr-2 h-5 w-5" />
                   Edit Profile
@@ -341,15 +353,15 @@ const AdminProfile = () => {
           <div className="xl:col-span-1">
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 hover:shadow-3xl transition-all duration-300">
               {/* Profile Header */}
-              <div className="relative h-48 bg-gradient-to-br from-red-600 via-red-700 to-red-800">
+              <div className="relative h-48" style={{ background: `linear-gradient(to bottom right, ${COLORS.primary.red}, ${COLORS.primary.blue}, #9333ea)` }}>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                 <div className="absolute top-4 right-4">
                   <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                 </div>
                 <div className="absolute bottom-6 left-6">
                   <div className="relative">
-                    <div className="w-32 h-32 bg-white rounded-2xl flex items-center justify-center shadow-2xl border-4 border-white ring-4 ring-red-100/50 backdrop-blur-sm">
-                      <span className="text-4xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
+                    <div className="w-32 h-32 bg-white rounded-2xl flex items-center justify-center shadow-2xl border-4 border-white backdrop-blur-sm" style={{ '--tw-ring-color': `${COLORS.primary.red}50` }}>
+                      <span className="text-4xl font-bold bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
                         {getInitials()}
                       </span>
                     </div>
@@ -367,7 +379,7 @@ const AdminProfile = () => {
                     {profileData.name || 'Administrator'}
                   </h2>
                   <div className="flex flex-col items-center space-y-3 mb-4">
-                    <span className="inline-flex items-center px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 shadow-lg">
+                    <span className="inline-flex items-center px-5 py-2.5 rounded-full text-sm font-semibold text-white shadow-lg" style={{ background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
                       <Shield className="mr-2 h-4 w-4" />
                       {getRoleLabel(profileData.role)}
                     </span>
@@ -423,7 +435,17 @@ const AdminProfile = () => {
                       <button
                         onClick={handleSaveProfile}
                         disabled={isLoading}
-                        className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent rounded-xl text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 group"
+                        className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent rounded-xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 group"
+                        style={{ 
+                          background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`,
+                          '--tw-ring-color': COLORS.primary.red
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary.blue}, ${COLORS.primary.red})`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`;
+                        }}
                       >
                         {isLoading ? (
                           <>
@@ -460,16 +482,16 @@ const AdminProfile = () => {
           <div className="xl:col-span-3 space-y-8">
             {/* Personal Information */}
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 hover:shadow-3xl transition-all duration-300">
-              <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 via-red-50 to-indigo-50">
+              <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-gray-50" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10, #eef2ff)` }}>
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-semibold text-gray-900 flex items-center">
-                    <div className="p-2 bg-red-100 rounded-xl mr-3">
-                      <User className="h-6 w-6 text-red-600" />
+                    <div className="p-2 rounded-xl mr-3" style={{ backgroundColor: `${COLORS.primary.red}20` }}>
+                      <User className="h-6 w-6" style={{ color: COLORS.primary.red }} />
                     </div>
                     Personal Information
                   </h3>
                   {isEditing && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: `${COLORS.primary.red}20`, color: COLORS.primary.red }}>
                       <Edit className="mr-1 h-3 w-3" />
                       Editing
                     </span>
@@ -489,11 +511,12 @@ const AdminProfile = () => {
                         type="text"
                         value={editData.name}
                         onChange={(e) => handleEditChange('name', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+                        style={{ '--tw-ring-color': COLORS.primary.red }}
                         placeholder="Enter full name"
                       />
                     ) : (
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-red-50 rounded-xl border border-gray-100">
+                      <div className="p-4 bg-gradient-to-r from-gray-50 rounded-xl border border-gray-100" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10)` }}>
                         <p className="text-gray-900 font-medium text-lg">{profileData.name || 'N/A'}</p>
                       </div>
                     )}
@@ -509,11 +532,12 @@ const AdminProfile = () => {
                         type="email"
                         value={editData.email}
                         onChange={(e) => handleEditChange('email', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm"
+                        style={{ '--tw-ring-color': COLORS.primary.red }}
                         placeholder="Enter email address"
                       />
                     ) : (
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-red-50 rounded-xl border border-gray-100">
+                      <div className="p-4 bg-gradient-to-r from-gray-50 rounded-xl border border-gray-100" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10)` }}>
                         <p className="text-gray-900 font-medium text-lg">{profileData.email || 'N/A'}</p>
                       </div>
                     )}
@@ -529,11 +553,12 @@ const AdminProfile = () => {
                         type="text"
                         value={editData.username}
                         onChange={(e) => handleEditChange('username', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm"
+                        style={{ '--tw-ring-color': COLORS.primary.red }}
                         placeholder="Enter username"
                       />
                     ) : (
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-red-50 rounded-xl border border-gray-100">
+                      <div className="p-4 bg-gradient-to-r from-gray-50 rounded-xl border border-gray-100" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10)` }}>
                         <p className="text-gray-900 font-medium text-lg">{profileData.username || 'N/A'}</p>
                       </div>
                     )}
@@ -548,13 +573,14 @@ const AdminProfile = () => {
                       <select
                         value={editData.role}
                         onChange={(e) => handleEditChange('role', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm"
+                        style={{ '--tw-ring-color': COLORS.primary.red }}
                       >
                         <option value="admin">Administrator</option>
                         <option value="principal">Principal</option>
                       </select>
                     ) : (
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-red-50 rounded-xl border border-gray-100">
+                      <div className="p-4 bg-gradient-to-r from-gray-50 rounded-xl border border-gray-100" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10)` }}>
                         <p className="text-gray-900 font-medium text-lg capitalize">{getRoleLabel(profileData.role)}</p>
                       </div>
                     )}
@@ -570,11 +596,12 @@ const AdminProfile = () => {
                         type="tel"
                         value={editData.phone}
                         onChange={(e) => handleEditChange('phone', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm"
+                        style={{ '--tw-ring-color': COLORS.primary.red }}
                         placeholder="Enter phone number"
                       />
                     ) : (
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-red-50 rounded-xl border border-gray-100">
+                      <div className="p-4 bg-gradient-to-r from-gray-50 rounded-xl border border-gray-100" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10)` }}>
                         <p className="text-gray-900 font-medium text-lg">{profileData.phone || 'N/A'}</p>
                       </div>
                     )}
@@ -590,11 +617,12 @@ const AdminProfile = () => {
                         value={editData.address}
                         onChange={(e) => handleEditChange('address', e.target.value)}
                         rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm"
+                        style={{ '--tw-ring-color': COLORS.primary.red }}
                         placeholder="Enter address"
                       />
                     ) : (
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-red-50 rounded-xl border border-gray-100">
+                      <div className="p-4 bg-gradient-to-r from-gray-50 rounded-xl border border-gray-100" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10)` }}>
                         <p className="text-gray-900 font-medium text-lg">{profileData.address || 'N/A'}</p>
                       </div>
                     )}
@@ -611,9 +639,9 @@ const AdminProfile = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
           <div className="relative mx-auto p-8 w-full max-w-md">
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-              <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-red-50">
+              <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-gray-50" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10)` }}>
                 <h3 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <Lock className="mr-3 h-6 w-6 text-red-600" />
+                  <Lock className="mr-3 h-6 w-6" style={{ color: COLORS.primary.red }} />
                   Change Password
                 </h3>
               </div>
@@ -628,7 +656,8 @@ const AdminProfile = () => {
                       type={showPasswords.current ? 'text' : 'password'}
                       value={passwordData.current_password}
                       onChange={(e) => handlePasswordChange('current_password', e.target.value)}
-                      className="w-full pr-12 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                      className="w-full pr-12 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm"
+                      style={{ '--tw-ring-color': COLORS.primary.red }}
                       placeholder="Enter current password"
                     />
                     <button
@@ -654,7 +683,8 @@ const AdminProfile = () => {
                       type={showPasswords.new ? 'text' : 'password'}
                       value={passwordData.new_password}
                       onChange={(e) => handlePasswordChange('new_password', e.target.value)}
-                      className="w-full pr-12 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                      className="w-full pr-12 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm"
+                      style={{ '--tw-ring-color': COLORS.primary.red }}
                       placeholder="Enter new password (min 6 characters)"
                     />
                     <button
@@ -680,7 +710,8 @@ const AdminProfile = () => {
                       type={showPasswords.confirm ? 'text' : 'password'}
                       value={passwordData.confirm_password}
                       onChange={(e) => handlePasswordChange('confirm_password', e.target.value)}
-                      className="w-full pr-12 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                      className="w-full pr-12 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 shadow-sm"
+                      style={{ '--tw-ring-color': COLORS.primary.red }}
                       placeholder="Confirm new password"
                     />
                     <button
@@ -698,7 +729,7 @@ const AdminProfile = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-4 px-8 py-6 bg-gradient-to-r from-gray-50 to-red-50">
+              <div className="flex justify-end space-x-4 px-8 py-6 bg-gradient-to-r from-gray-50" style={{ background: `linear-gradient(to right, #f9fafb, ${COLORS.primary.red}10)` }}>
                 <button
                   onClick={() => setShowPasswordForm(false)}
                   className="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5"
@@ -708,7 +739,21 @@ const AdminProfile = () => {
                 <button
                   onClick={handleChangePassword}
                   disabled={passwordLoading || !passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password}
-                  className="px-8 py-3 border border-transparent rounded-xl text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="px-8 py-3 border border-transparent rounded-xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  style={{ 
+                    background: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`,
+                    '--tw-ring-color': COLORS.primary.red
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary.blue}, ${COLORS.primary.red})`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.background = `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`;
+                    }
+                  }}
                 >
                   {passwordLoading ? 'Updating...' : 'Update Password'}
                 </button>

@@ -32,11 +32,14 @@ const Dashboard = () => {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [currentTerm, setCurrentTerm] = useState(null);
   const [loading, setLoading] = useState(true);
   const { showError } = useNotification();
 
   useEffect(() => {
     fetchDashboardData();
+    fetchCurrentSessionAndTerm();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -47,6 +50,17 @@ const AdminDashboard = () => {
       showError(error.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCurrentSessionAndTerm = async () => {
+    try {
+      const response = await API.getCurrentAcademicSession();
+      const data = response.data || response;
+      if (data.session) setCurrentSession(data.session);
+      if (data.term) setCurrentTerm(data.term);
+    } catch (error) {
+      console.error('Error fetching current session and term:', error);
     }
   };
 
@@ -112,18 +126,22 @@ const AdminDashboard = () => {
             Dashboard
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Welcome back! Here's what's happening at The Golden Crest Royal Academy.
+            Welcome back! Here's what's happening at G-LOVE ACADEMY.
           </p>
         </div>
         <div className="mt-4 flex md:mt-0 md:ml-4">
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2"
-            style={{ '--tw-ring-color': COLORS.primary.red }}
-          >
+          <div className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white">
             <Calendar className="mr-2 h-4 w-4" />
-            This Term
-          </button>
+            {currentSession && currentTerm ? (
+              <span>
+                {currentSession.name} - {currentTerm.name}
+              </span>
+            ) : currentSession ? (
+              <span>{currentSession.name} - No Term Set</span>
+            ) : (
+              <span>This Term - Not Set</span>
+            )}
+          </div>
         </div>
       </div>
 

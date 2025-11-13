@@ -934,6 +934,45 @@ class API {
         return { success: true };
     }
 
+    async downloadScoreTemplateTeacher(classId = null, subjectId = null) {
+        let url = `${this.baseURL}/teacher/scores/import-template`;
+        
+        // Add query parameters if class_id and subject_id are provided
+        if (classId && subjectId) {
+            const params = new URLSearchParams({
+                class_id: classId,
+                subject_id: subjectId
+            });
+            url += `?${params.toString()}`;
+        }
+        
+        const headers = this.getHeaders();
+        
+        const response = await fetch(url, {
+            headers: {
+                ...headers,
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to download template' }));
+            throw new Error(error.message || 'Failed to download template');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = 'score_import_template.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        return { success: true };
+    }
+
     // Teacher import/export methods
     // Promotion Management APIs
     async getPromotionRules() {
@@ -1034,9 +1073,17 @@ class API {
         });
     }
 
-    async importScoresTeacher(file) {
+    async importScoresTeacher(file, classId = null, subjectId = null) {
         const formData = new FormData();
         formData.append('file', file);
+        
+        // Add class_id and subject_id if provided
+        if (classId) {
+            formData.append('class_id', classId);
+        }
+        if (subjectId) {
+            formData.append('subject_id', subjectId);
+        }
 
         const url = `${this.baseURL}/teacher/scores/import`;
         const headers = this.getHeaders();
