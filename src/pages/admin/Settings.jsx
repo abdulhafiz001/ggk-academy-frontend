@@ -25,11 +25,13 @@ import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 import AcademicSessionsTab from '../../components/AcademicSessionsTab';
 import PromotionTab from '../../components/PromotionTab';
 import GradingConfigurationTab from '../../components/GradingConfigurationTab';
+import TeachersTab from '../../components/TeachersTab';
+import debug from '../../utils/debug';
 
 const Settings = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(
-    location.state?.tab || 'academic-sessions'
+    location.state?.tab || 'classes'
   );
   const [showAddForm, setShowAddForm] = useState(false);
   
@@ -41,24 +43,19 @@ const Settings = () => {
   }, [location.state]);
 
   const tabs = [
-    { id: 'academic-sessions', name: 'Academic Sessions', icon: Calendar },
-    { id: 'promotion', name: 'Student Promotion', icon: GraduationCap },
-    { id: 'grading', name: 'Grading Configuration', icon: SettingsIcon },
     { id: 'classes', name: 'Classes', icon: BookOpen },
     { id: 'subjects', name: 'Subjects', icon: SettingsIcon },
     { id: 'teachers', name: 'Teachers', icon: Users },
     { id: 'activities', name: 'Teacher Activities', icon: UserPlus },
+    { id: 'academic-sessions', name: 'Academic Sessions', icon: Calendar },
+    { id: 'promotion', name: 'Student Promotion', icon: GraduationCap },
+    { id: 'grading', name: 'Grading Configuration', icon: SettingsIcon },
     { id: 'admins', name: 'Add Admin', icon: Shield },
   ];
 
   const TabContent = () => {
     switch (activeTab) {
-      case 'academic-sessions':
-        return <AcademicSessionsTab />;
-      case 'promotion':
-        return <PromotionTab />;
-      case 'grading':
-        return <GradingConfigurationTab />;
+      
       case 'classes':
         return <ClassesTab />;
       case 'subjects':
@@ -67,10 +64,16 @@ const Settings = () => {
         return <TeachersTab />;
       case 'activities':
         return <TeacherActivitiesTab />;
+      case 'academic-sessions':
+        return <AcademicSessionsTab />;
+      case 'promotion':
+        return <PromotionTab />;
+      case 'grading':
+        return <GradingConfigurationTab />;
       case 'admins':
         return <AdminsTab />;
       default:
-        return <AcademicSessionsTab />;
+        return <ClassesTab />;
     }
   };
 
@@ -145,38 +148,46 @@ const ClassesTab = () => {
   const fetchClasses = async () => {
     try {
       const response = await API.getClasses();
-      console.log('Classes API Response:', response);
+      debug.component('Settings', 'fetchClasses - Response received');
       
-      // The API service returns { data, status }
-      // The backend returns { data: [...], total: X, message: "..." }
-      // So we need to access response.data.data
+      // The API service returns { data: backendResponse, status }
+      // Backend returns { data: [...], total: X, message: "..." }
+      // So the structure is: response.data = { data: [...], total: X, message: "..." }
+      // Therefore: response.data.data = [...]
       let classesData = [];
       
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          // Direct array response
-          classesData = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          // Standard backend response structure
+      if (response?.data) {
+        // First check if response.data.data exists and is an array (standard backend structure)
+        if (response.data.data && Array.isArray(response.data.data)) {
           classesData = response.data.data;
-        } else if (response.data.data && typeof response.data.data === 'object') {
-          // Try to find array in response.data.data
-          const dataKeys = Object.keys(response.data.data);
-          for (const key of dataKeys) {
-            if (Array.isArray(response.data.data[key])) {
-              classesData = response.data.data[key];
+        } 
+        // If response.data is directly an array (unlikely but possible)
+        else if (Array.isArray(response.data)) {
+          classesData = response.data;
+        }
+        // Try to find any array property in response.data
+        else if (typeof response.data === 'object') {
+          const keys = Object.keys(response.data);
+          for (const key of keys) {
+            if (Array.isArray(response.data[key])) {
+              classesData = response.data[key];
               break;
             }
           }
         }
       }
       
-      console.log('Extracted classes data:', classesData);
-      console.log('Classes count:', classesData.length);
+      // Ensure it's always an array
+      if (!Array.isArray(classesData)) {
+        debug.warn('Settings - Unexpected classes response structure:', response);
+        classesData = [];
+      }
+      
+      debug.component('Settings', 'fetchClasses - Data loaded', { count: classesData.length });
       
       setClasses(classesData);
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      debug.error('Error fetching classes:', error);
       showError('Failed to fetch classes');
       setClasses([]);
     } finally {
@@ -187,7 +198,7 @@ const ClassesTab = () => {
   const fetchTeachers = async () => {
     try {
       const response = await API.getUsers();
-      console.log('Teachers API Response:', response);
+      debug.component('Settings', 'fetchTeachers - Response received');
       
       // The API service returns { data, status }
       // The backend returns { data: [...], total: X, message: "..." }
@@ -204,13 +215,12 @@ const ClassesTab = () => {
         }
       }
       
-      console.log('Extracted teachers data:', teachersData);
-      console.log('Teachers count:', teachersData.length);
+      debug.component('Settings', 'fetchTeachers - Data loaded', { count: teachersData.length });
       
       const teachersArray = Array.isArray(teachersData) ? teachersData : [];
       setTeachers(teachersArray.filter(user => user.role === 'teacher'));
     } catch (error) {
-      console.error('Failed to fetch teachers:', error);
+      debug.error('Failed to fetch teachers:', error);
       setTeachers([]);
     }
   };
@@ -570,7 +580,7 @@ const SubjectsTab = () => {
   const fetchSubjects = async () => {
     try {
       const response = await API.getSubjects();
-      console.log('Subjects API Response:', response);
+      debug.component('Settings', 'fetchSubjects - Response received');
       
       // The API service returns { data, status }
       // The backend returns { data: [...], total: X, message: "..." }
@@ -587,12 +597,11 @@ const SubjectsTab = () => {
         }
       }
       
-      console.log('Extracted subjects data:', subjectsData);
-      console.log('Subjects count:', subjectsData.length);
+      debug.component('Settings', 'fetchSubjects - Data loaded', { count: subjectsData.length });
       
       setSubjects(subjectsData);
     } catch (error) {
-      console.error('Error fetching subjects:', error);
+      debug.error('Error fetching subjects:', error);
       showError('Failed to fetch subjects');
       setSubjects([]);
     } finally {
@@ -832,6 +841,7 @@ const SubjectsTab = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
+                          onClick={() => setEditingSubject(subject)}
                           className="text-blue-600 hover:text-blue-900"
                           title="Edit subject"
                         >
@@ -854,6 +864,71 @@ const SubjectsTab = () => {
         </div>
       )}
 
+      {/* Edit Subject Modal */}
+      {editingSubject && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Subject</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingSubject.name}
+                    onChange={(e) => setEditingSubject({ ...editingSubject, name: e.target.value })}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject Code *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingSubject.code}
+                    onChange={(e) => setEditingSubject({ ...editingSubject, code: e.target.value.toUpperCase() })}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={editingSubject.description || ''}
+                    onChange={(e) => setEditingSubject({ ...editingSubject, description: e.target.value })}
+                    rows={3}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => handleEditSubject(editingSubject.id, editingSubject)}
+                  disabled={!editingSubject.name || !editingSubject.code || submitting}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: COLORS.primary.red }}
+                >
+                  {submitting ? 'Updating...' : 'Update Subject'}
+                </button>
+                <button
+                  onClick={() => setEditingSubject(null)}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={deleteModal.isOpen}
@@ -862,730 +937,6 @@ const SubjectsTab = () => {
         title="Delete Subject"
         message="Are you sure you want to delete this subject? This action cannot be undone and will remove all associated data."
         itemName={deleteModal.subject?.name}
-        isLoading={submitting}
-      />
-    </div>
-  );
-};
-
-// Teachers Tab Component
-const TeachersTab = () => {
-  const [teachers, setTeachers] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, teacher: null });
-  const [submitting, setSubmitting] = useState(false);
-  const { showSuccess, showError } = useNotification();
-
-  const [newTeacher, setNewTeacher] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    username: '',
-    password: '',
-    role: 'teacher',
-    assignedClasses: [],
-    assignedSubjects: []
-  });
-
-  useEffect(() => {
-    fetchTeachers();
-    fetchSubjects();
-    fetchClasses();
-  }, []);
-
-  const fetchTeachers = async () => {
-    try {
-      // First, just fetch users - assignments are optional
-      const usersResponse = await API.getUsers();
-      console.log('TeachersTab - Users API Response:', usersResponse);
-      
-      // The API service returns { data, status }
-      // The backend returns { data: [...], total: X, message: "..." }
-      // So we need to access response.data.data
-      let usersData = [];
-      
-      if (usersResponse && usersResponse.data) {
-        if (Array.isArray(usersResponse.data)) {
-          // Direct array response
-          usersData = usersResponse.data;
-        } else if (usersResponse.data.data && Array.isArray(usersResponse.data.data)) {
-          // Standard backend response structure
-          usersData = usersResponse.data.data;
-        }
-      }
-      
-      console.log('TeachersTab - Extracted users data:', usersData);
-      const teachersData = usersData.filter(user => user.role === 'teacher');
-
-      // Try to fetch assignments, but don't fail if it doesn't work
-      let teacherAssignments = {};
-      try {
-        const assignmentsResponse = await API.getTeacherAssignments();
-        console.log('TeachersTab - Assignments API Response:', assignmentsResponse);
-        
-        // The API service returns { data, status }
-        // The backend returns { data: [...], total: X, message: "..." }
-        // So we need to access response.data.data
-        let assignmentsData = [];
-        
-        if (assignmentsResponse && assignmentsResponse.data) {
-          if (Array.isArray(assignmentsResponse.data)) {
-            // Direct array response
-            assignmentsData = assignmentsResponse.data;
-          } else if (assignmentsResponse.data.data && Array.isArray(assignmentsResponse.data.data)) {
-            // Standard backend response structure
-            assignmentsData = assignmentsResponse.data.data;
-          }
-        }
-        
-        console.log('TeachersTab - Extracted assignments data:', assignmentsData);
-
-        // Group assignments by teacher
-        assignmentsData.forEach(assignment => {
-          const teacherId = assignment.teacher_id;
-          if (!teacherAssignments[teacherId]) {
-            teacherAssignments[teacherId] = {
-              classes: new Set(),
-              subjects: new Set()
-            };
-          }
-
-          // Handle different possible class property names
-          const classObj = assignment.schoolClass || assignment.school_class || assignment.class;
-          if (classObj && classObj.name) {
-            teacherAssignments[teacherId].classes.add(classObj.name);
-          }
-
-          // Handle subject
-          if (assignment.subject && assignment.subject.name) {
-            teacherAssignments[teacherId].subjects.add(assignment.subject.name);
-          }
-
-          console.log('Processing assignment:', assignment);
-          console.log('Class object:', classObj);
-          console.log('Subject object:', assignment.subject);
-        });
-      } catch (assignmentError) {
-        console.warn('Could not fetch teacher assignments:', assignmentError);
-        // Continue without assignments - they'll show as empty
-      }
-
-      // Add assignment data to teachers
-      const enrichedTeachers = teachersData.map(teacher => ({
-        ...teacher,
-        assignedClasses: Array.from(teacherAssignments[teacher.id]?.classes || []),
-        assignedSubjects: Array.from(teacherAssignments[teacher.id]?.subjects || [])
-      }));
-
-      setTeachers(enrichedTeachers);
-    } catch (error) {
-      showError('Failed to fetch teachers');
-      console.error('Error fetching teachers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSubjects = async () => {
-    try {
-      const response = await API.getSubjects();
-      console.log('TeachersTab - Subjects API Response:', response);
-      
-      // The API service returns { data, status }
-      // The backend returns { data: [...], total: X, message: "..." }
-      // So we need to access response.data.data
-      let subjectsData = [];
-      
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          // Direct array response
-          subjectsData = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          // Standard backend response structure
-          subjectsData = response.data.data;
-        }
-      }
-      
-      console.log('TeachersTab - Extracted subjects data:', subjectsData);
-      setSubjects(subjectsData);
-    } catch (error) {
-      console.error('Failed to fetch subjects:', error);
-      setSubjects([]);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const response = await API.getClasses();
-      console.log('TeachersTab - Classes API Response:', response);
-      
-      // The API service returns { data, status }
-      // The backend returns { data: [...], total: X, message: "..." }
-      // So we need to access response.data.data
-      let classesData = [];
-      
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          // Direct array response
-          classesData = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          // Standard backend response structure
-          classesData = response.data.data;
-        }
-      }
-      
-      console.log('TeachersTab - Extracted classes data:', classesData);
-      setClasses(classesData);
-    } catch (error) {
-      console.error('Failed to fetch classes:', error);
-      setClasses([]);
-    }
-  };
-
-  // Generate username from teacher name
-  const generateUsername = (name) => {
-    if (!name) return '';
-    const cleanName = name.toLowerCase().replace(/[^a-z\s]/g, '').trim();
-    const nameParts = cleanName.split(' ').filter(part => part.length > 0);
-    if (nameParts.length >= 2) {
-      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.gloveacademy`;
-    } else if (nameParts.length === 1) {
-      return `${nameParts[0]}.gloveacademy`;
-    }
-    return '';
-  };
-
-  const handleTeacherChange = (field, value) => {
-    setNewTeacher(prev => ({
-      ...prev,
-      [field]: value
-    }));
-
-    // Auto-generate username when name changes
-    if (field === 'name') {
-      const username = generateUsername(value);
-      setNewTeacher(prev => ({
-        ...prev,
-        username
-      }));
-    }
-  };
-
-  const handleAddTeacher = async () => {
-    if (!newTeacher.name || !newTeacher.username) {
-      showError('Please fill in all required fields (Name and Username)');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const teacherData = {
-        name: newTeacher.name,
-        email: newTeacher.email || `${newTeacher.username}@gloveacademy.edu.ng`, // Generate email if not provided
-        username: newTeacher.username,
-        password: newTeacher.password || 'password', // Use provided password or default
-        role: 'teacher',
-        phone: newTeacher.phone || '',
-        is_active: true
-      };
-
-      // Create the teacher first
-      const response = await API.createUser(teacherData);
-
-      // Extract teacher ID from response - try multiple possible structures
-      let teacherId = null;
-      if (response.data?.id) {
-        teacherId = response.data.id;
-      } else if (response.id) {
-        teacherId = response.id;
-      } else if (response.user?.id) {
-        teacherId = response.user.id;
-      } else if (response.data?.user?.id) {
-        teacherId = response.data.user.id;
-      }
-
-      console.log('Created teacher response:', response);
-      console.log('Extracted Teacher ID:', teacherId);
-
-      if (!teacherId) {
-        showError('Teacher created but could not extract teacher ID for assignments');
-        return;
-      }
-
-      // Create assignments for each selected class-subject combination
-      const assignments = [];
-      for (const classId of newTeacher.assignedClasses) {
-        for (const subjectId of newTeacher.assignedSubjects) {
-          assignments.push({
-            teacher_id: parseInt(teacherId), // Ensure it's a number
-            subject_id: parseInt(subjectId),
-            class_id: parseInt(classId)
-          });
-        }
-      }
-
-      console.log('Assignments to create:', assignments);
-
-      // Create all assignments
-      if (assignments.length > 0) {
-        try {
-          const assignmentPromises = assignments.map(async (assignment) => {
-            console.log('Creating assignment:', assignment);
-            return await API.assignTeacher(assignment);
-          });
-
-          await Promise.all(assignmentPromises);
-          console.log('All assignments created successfully');
-        } catch (assignmentError) {
-          console.error('Assignment error:', assignmentError);
-          console.error('Assignment error details:', assignmentError.response?.data);
-          showError(`Teacher created successfully, but assignments failed: ${assignmentError.message}. You can assign classes and subjects manually later.`);
-          // Don't return here - still show success and refresh the list
-        }
-      }
-
-      // Show appropriate success message
-      if (assignments.length > 0) {
-        showSuccess('Teacher added and assigned successfully');
-      } else {
-        showSuccess('Teacher added successfully');
-      }
-      setNewTeacher({
-        name: '',
-        email: '',
-        phone: '',
-        username: '',
-        password: '',
-        role: 'teacher',
-        assignedClasses: [],
-        assignedSubjects: []
-      });
-      setShowAddForm(false);
-      fetchTeachers(); // Refresh the list
-    } catch (error) {
-      showError(error.message || 'Failed to add teacher');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleClassChange = (classId) => {
-    setNewTeacher(prev => ({
-      ...prev,
-      assignedClasses: prev.assignedClasses.includes(classId)
-        ? prev.assignedClasses.filter(id => id !== classId)
-        : [...prev.assignedClasses, classId]
-    }));
-  };
-
-  const handleSubjectChange = (subjectId) => {
-    setNewTeacher(prev => ({
-      ...prev,
-      assignedSubjects: prev.assignedSubjects.includes(subjectId)
-        ? prev.assignedSubjects.filter(id => id !== subjectId)
-        : [...prev.assignedSubjects, subjectId]
-    }));
-  };
-
-  const handleEditTeacher = async (teacherId, updatedData) => {
-    setSubmitting(true);
-    try {
-      await API.updateUser(teacherId, updatedData);
-      showSuccess('Teacher updated successfully');
-      setEditingTeacher(null);
-      fetchTeachers(); // Refresh the list
-    } catch (error) {
-      showError(error.message || 'Failed to update teacher');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteTeacher = async () => {
-    if (!deleteModal.teacher) return;
-
-    setSubmitting(true);
-    try {
-      // Use hard delete to completely remove teacher and all associated data
-      await API.deleteUser(deleteModal.teacher.id, true);
-      showSuccess('Teacher permanently deleted successfully');
-      setDeleteModal({ isOpen: false, teacher: null });
-      fetchTeachers(); // Refresh the list
-    } catch (error) {
-      showError(error.message || 'Failed to delete teacher');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const openDeleteModal = (teacher) => {
-    setDeleteModal({ isOpen: true, teacher });
-  };
-
-  const closeDeleteModal = () => {
-    setDeleteModal({ isOpen: false, teacher: null });
-  };
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Manage Teachers</h3>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
-          style={{ backgroundColor: COLORS.primary.red }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Teacher
-        </button>
-      </div>
-
-      {/* Add Teacher Form */}
-      {showAddForm && (
-        <div className="mb-6 p-6 border border-gray-200 rounded-lg bg-gray-50">
-          <h4 className="text-lg font-medium text-gray-900 mb-4">Add New Teacher</h4>
-          
-          {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                value={newTeacher.name}
-                onChange={(e) => handleTeacherChange('name', e.target.value)}
-                placeholder="Enter full name"
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': COLORS.primary.red }}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Username *
-              </label>
-              <input
-                type="text"
-                value={newTeacher.username}
-                onChange={(e) => handleTeacherChange('username', e.target.value)}
-                placeholder="Username (auto-generated from name)"
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': COLORS.primary.red }}
-              />
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address (Optional)
-              </label>
-              <input
-                type="email"
-                value={newTeacher.email}
-                onChange={(e) => handleTeacherChange('email', e.target.value)}
-                        placeholder="teacher@gloveacademy.edu.ng"
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': COLORS.primary.red }}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                If not provided, email will be auto-generated as: {newTeacher.username ? `${newTeacher.username}@gloveacademy.edu.ng` : 'username@gloveacademy.edu.ng'}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                value={newTeacher.phone}
-                onChange={(e) => handleTeacherChange('phone', e.target.value)}
-                placeholder="+234 xxx xxx xxxx"
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': COLORS.primary.red }}
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={newTeacher.password}
-              onChange={(e) => handleTeacherChange('password', e.target.value)}
-              placeholder="Leave blank for default password"
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
-              style={{ '--tw-ring-color': COLORS.primary.red }}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              If left blank, default password "password" will be used
-            </p>
-          </div>
-
-          {/* Class Assignments */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign Classes
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {(classes && Array.isArray(classes) ? classes : []).map(cls => (
-                <label key={cls.id} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={newTeacher.assignedClasses.includes(cls.id)}
-                    onChange={() => handleClassChange(cls.id)}
-                    className="h-4 w-4 rounded border-gray-300 focus:ring-2"
-                    style={{ '--tw-ring-color': COLORS.primary.red }}
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{cls.name}</span>
-                </label>
-              ))}
-            </div>
-            {newTeacher.assignedClasses.length === 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                Select classes this teacher will teach
-              </p>
-            )}
-          </div>
-
-          {/* Subject Assignments */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign Subjects
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {(subjects && Array.isArray(subjects) ? subjects : []).map(subject => (
-                <label key={subject.id} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={newTeacher.assignedSubjects.includes(subject.id)}
-                    onChange={() => handleSubjectChange(subject.id)}
-                    className="h-4 w-4 rounded border-gray-300 focus:ring-2"
-                    style={{ '--tw-ring-color': COLORS.primary.red }}
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{subject.name}</span>
-                </label>
-              ))}
-            </div>
-            {newTeacher.assignedSubjects.length === 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                Select subjects this teacher will teach
-              </p>
-            )}
-          </div>
-
-          {/* Assignment Summary */}
-          {newTeacher.assignedClasses.length > 0 && newTeacher.assignedSubjects.length > 0 && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-sm text-blue-800">
-                <strong>Assignment Summary:</strong> This teacher will be assigned to teach{' '}
-                <strong>{newTeacher.assignedSubjects.length}</strong> subject(s) across{' '}
-                <strong>{newTeacher.assignedClasses.length}</strong> class(es), creating{' '}
-                <strong>{newTeacher.assignedClasses.length * newTeacher.assignedSubjects.length}</strong> total assignment(s).
-              </p>
-            </div>
-          )}
-
-          <div className="flex space-x-3">
-            <button
-              onClick={handleAddTeacher}
-              disabled={!newTeacher.name || !newTeacher.username || submitting}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: COLORS.primary.red }}
-            >
-              {submitting ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Adding...
-                </div>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Add Teacher
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => {
-                setShowAddForm(false);
-                setNewTeacher({
-                  name: '',
-                  email: '',
-                  phone: '',
-                  username: '',
-                  password: '',
-                  role: 'teacher',
-                  assignedClasses: [],
-                  assignedSubjects: []
-                });
-              }}
-              disabled={submitting}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Teachers List */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-          <span className="ml-2 text-gray-600">Loading teachers...</span>
-        </div>
-      ) : (
-        <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-          <table className="min-w-full divide-y divide-gray-300">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Teacher
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Username
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assigned Classes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assigned Subjects
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {teachers.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                    <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">No teachers found</h3>
-                    <p className="text-sm text-gray-500">Get started by adding a new teacher.</p>
-                  </td>
-                </tr>
-              ) : (
-                teachers.map((teacher) => (
-                  <tr key={teacher.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                          <Users className="w-5 h-5 text-gray-400" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{teacher.name}</div>
-                          <div className="text-sm text-gray-500">ID: {teacher.id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {teacher.username}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{teacher.email || 'Not provided'}</div>
-                      <div className="text-sm text-gray-500">{teacher.phone || 'Not provided'}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {teacher.assignedClasses && teacher.assignedClasses.length > 0 ? (
-                          teacher.assignedClasses.slice(0, 2).map((className, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-50 text-purple-700"
-                            >
-                              {className}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-gray-400">No classes assigned</span>
-                        )}
-                        {teacher.assignedClasses && teacher.assignedClasses.length > 2 && (
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-50 text-gray-600">
-                            +{teacher.assignedClasses.length - 2} more
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {teacher.assignedSubjects && teacher.assignedSubjects.length > 0 ? (
-                          teacher.assignedSubjects.slice(0, 2).map((subjectName, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-50 text-green-700"
-                            >
-                              {subjectName}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-gray-400">No subjects assigned</span>
-                        )}
-                        {teacher.assignedSubjects && teacher.assignedSubjects.length > 2 && (
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-50 text-gray-600">
-                            +{teacher.assignedSubjects.length - 2} more
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        teacher.is_active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {teacher.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Edit teacher"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => openDeleteModal(teacher)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete teacher"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={deleteModal.isOpen}
-        onClose={closeDeleteModal}
-        onConfirm={handleDeleteTeacher}
-        title="Delete Teacher"
-        message="Are you sure you want to delete this teacher? This action cannot be undone and will remove all associated data."
-        itemName={deleteModal.teacher?.name}
         isLoading={submitting}
       />
     </div>
@@ -1609,53 +960,50 @@ const TeacherActivitiesTab = () => {
   const fetchActivities = async () => {
     try {
       setLoading(true);
-      // For now, we'll create a mock implementation since there's no specific activities API
-      // In a real implementation, you would call an API endpoint like API.getTeacherActivities()
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch latest teacher activities (scores, attendance, student additions)
+      const response = await API.getTeacherActivities({ limit: 50 });
       
-      // Mock activities data - in real implementation, this would come from the API
-      const mockActivities = [
-        {
-          id: 1,
-          teacher_id: 1,
-          teacher: 'John Doe',
-          activity: 'Result Entry',
-          subject: 'Mathematics',
-          class: 'JSS 1A',
-          date: new Date().toISOString().split('T')[0],
-          time: '10:30 AM',
-          status: 'completed',
-          description: 'Entered mid-term results for 35 students'
-        },
-        {
-          id: 2,
-          teacher_id: 2,
-          teacher: 'Jane Smith',
-          activity: 'Score Update',
-          subject: 'English Language',
-          class: 'JSS 1B',
-          date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
-          time: '09:15 AM',
-          status: 'completed',
-          description: 'Updated student scores for 32 students'
-        },
-        {
-          id: 3,
-          teacher_id: 3,
-          teacher: 'Mike Johnson',
-          activity: 'Score Entry',
-          subject: 'Chemistry',
-          class: 'JSS 3A',
-          date: new Date(Date.now() - 172800000).toISOString().split('T')[0], // 2 days ago
-          time: '02:45 PM',
-          status: 'in-progress',
-          description: 'Entering laboratory test scores'
+      let activitiesData = [];
+      
+      // Parse response structure
+      if (response?.data) {
+        if (Array.isArray(response.data)) {
+          activitiesData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          activitiesData = response.data.data;
         }
-      ];
+      } else if (Array.isArray(response)) {
+        activitiesData = response;
+      }
       
-      setActivities(mockActivities);
+      // Transform activities to match the expected format
+      const formattedActivities = activitiesData.map(activity => {
+        const createdAt = new Date(activity.created_at);
+        const date = createdAt.toISOString().split('T')[0];
+        const time = createdAt.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        
+        return {
+          id: activity.id,
+          teacher_id: activity.teacher_id,
+          teacher: activity.teacher || 'Unknown Teacher',
+          activity: activity.activity,
+          subject: activity.subject || 'General',
+          class: activity.class || 'Unknown Class',
+          date: date,
+          time: time,
+          status: activity.status || 'completed',
+          description: activity.description || '',
+          created_at: activity.created_at
+        };
+      });
+      
+      // Take only the latest 20 activities (already sorted by backend)
+      setActivities(formattedActivities.slice(0, 20));
     } catch (error) {
       console.error('Error fetching activities:', error);
       showError('Failed to load teacher activities');
@@ -1707,7 +1055,9 @@ const TeacherActivitiesTab = () => {
   const getActivityIcon = (activity) => {
     const icons = {
       'Result Entry': '📊',
+      'Score Entry': '📝',
       'Attendance Marking': '✅',
+      'Student Addition': '👤',
       'Assignment Grading': '📝',
       'Parent Meeting': '👥',
       'Lesson Planning': '📚',
@@ -1910,7 +1260,7 @@ const AdminsTab = () => {
   const fetchAdmins = async () => {
     try {
       const response = await API.getUsers();
-      console.log('AdminsTab - Users API Response:', response);
+      debug.component('Settings', 'fetchAdmins - Response received');
       
       // The API service returns { data, status }
       // The backend returns { data: [...], total: X, message: "..." }
@@ -1927,11 +1277,11 @@ const AdminsTab = () => {
         }
       }
       
-      console.log('AdminsTab - Extracted users data:', usersData);
+      debug.component('Settings', 'fetchAdmins - Data loaded', { count: usersData.length });
       const adminsData = usersData.filter(user => user.role === 'admin');
       setAdmins(adminsData);
     } catch (error) {
-      console.error('Failed to fetch admins:', error);
+      debug.error('Failed to fetch admins:', error);
       showError('Failed to fetch admins');
       setAdmins([]);
     } finally {
@@ -2271,6 +1621,7 @@ const AdminsTab = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
+                          onClick={() => setEditingAdmin(admin)}
                           className="text-blue-600 hover:text-blue-900"
                           title="Edit administrator"
                         >
@@ -2290,6 +1641,106 @@ const AdminsTab = () => {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Edit Admin Modal */}
+      {editingAdmin && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Administrator</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAdmin.name}
+                    onChange={(e) => setEditingAdmin({ ...editingAdmin, name: e.target.value })}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAdmin.username}
+                    onChange={(e) => setEditingAdmin({ ...editingAdmin, username: e.target.value })}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    value={editingAdmin.email}
+                    onChange={(e) => setEditingAdmin({ ...editingAdmin, email: e.target.value })}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role *
+                  </label>
+                  <select
+                    value={editingAdmin.role}
+                    onChange={(e) => setEditingAdmin({ ...editingAdmin, role: e.target.value })}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
+                  >
+                    {availableRoles.map((role) => (
+                      <option key={role.value} value={role.value}>{role.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editingAdmin.is_active ? 'active' : 'inactive'}
+                    onChange={(e) => setEditingAdmin({ ...editingAdmin, is_active: e.target.value === 'active' })}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => handleEditAdmin(editingAdmin.id, {
+                    name: editingAdmin.name,
+                    username: editingAdmin.username,
+                    email: editingAdmin.email,
+                    role: editingAdmin.role,
+                    is_active: editingAdmin.is_active
+                  })}
+                  disabled={!editingAdmin.name || !editingAdmin.username || !editingAdmin.email || !editingAdmin.role || submitting}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: COLORS.primary.red }}
+                >
+                  {submitting ? 'Updating...' : 'Update Administrator'}
+                </button>
+                <button
+                  onClick={() => setEditingAdmin(null)}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

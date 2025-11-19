@@ -4,6 +4,7 @@ import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import { COLORS } from '../../constants/colors';
 import { CheckCircle2, XCircle, Clock, FileText, Calendar, ChevronDown } from 'lucide-react';
+import debug from '../../utils/debug';
 
 const Attendance = () => {
     const navigate = useNavigate();
@@ -128,7 +129,6 @@ const Attendance = () => {
     const fetchCurrentSession = async () => {
         try {
             const response = await API.getCurrentAcademicSession();
-            console.log('📅 Current session response:', response);
             
             // Backend returns: { session, term, has_session, has_term }
             // Handle different response structures
@@ -151,24 +151,24 @@ const Attendance = () => {
             
             if (session) {
                 setCurrentSession(session);
-                console.log('📅 Session set:', session);
+                debug.component('Attendance', 'Session set', { sessionId: session.id });
             } else {
-                console.warn('⚠️ No current session found in response');
+                debug.warn('Attendance - No current session found in response');
             }
             
             if (term) {
                 setCurrentTerm(term);
-                console.log('📅 Term set:', term);
+                debug.component('Attendance', 'Term set', { term: term.name });
             } else {
-                console.warn('⚠️ No current term found in response');
+                debug.warn('Attendance - No current term found in response');
             }
             
             // If no session or term, still set loading to false so user can see the error
             if (!session || !term) {
-                console.error('❌ Missing session or term:', { session: !!session, term: !!term });
+                debug.error('Attendance - Missing session or term:', { session: !!session, term: !!term });
             }
         } catch (error) {
-            console.error('Error fetching current session:', error);
+            debug.error('Error fetching current session:', error);
             showError('Failed to load current academic session. Please contact admin to set the current academic session.');
         } finally {
             setLoading(false);
@@ -191,7 +191,7 @@ const Attendance = () => {
             }
             setClasses(classesData || []);
         } catch (error) {
-            console.error('Error fetching classes:', error);
+            debug.error('Error fetching classes:', error);
             showError('Error loading classes');
             setClasses([]);
         }
@@ -217,7 +217,7 @@ const Attendance = () => {
             // Don't initialize status here - let fetchAttendanceRecords handle it
             // This prevents overwriting existing attendance when returning to the page
         } catch (error) {
-            console.error('Error fetching students:', error);
+            debug.error('Error fetching students:', error);
             showError('Error loading students');
             setStudents([]);
         }
@@ -236,7 +236,7 @@ const Attendance = () => {
 
         // Prevent concurrent fetches using a ref to avoid dependency issues
         if (fetchingRef.current) {
-            console.log('⏭️ Already fetching, skipping...');
+            debug.component('Attendance', 'fetchAttendanceRecords - Already fetching, skipping');
             return;
         }
         
@@ -273,13 +273,7 @@ const Attendance = () => {
             const normalizedWeek = Number(currentFilter.week);
             const normalizedDay = String(currentFilter.day).trim();
             
-            console.log('🔍 Fetching attendance with params:', params);
-            console.log('📅 Normalized search values:', {
-                week: normalizedWeek,
-                day: normalizedDay,
-                date: normalizedDate,
-                originalDate: currentFilter.date
-            });
+            debug.component('Attendance', 'fetchAttendanceRecords - Fetching with params', { params });
             
             // Build status and remarks maps from matching records
             const statusMap = {};
@@ -288,14 +282,9 @@ const Attendance = () => {
 
             // Simple, efficient matching logic
             if (recordsData.length > 0 && students.length > 0) {
-                console.log('🔍 Checking attendance records:', {
+                debug.component('Attendance', 'fetchAttendanceRecords - Checking records', { 
                     recordsCount: recordsData.length,
-                    studentsCount: students.length,
-                    lookingFor: {
-                        week: normalizedWeek,
-                        day: normalizedDay,
-                        date: normalizedDate
-                    }
+                    studentsCount: students.length
                 });
 
                 for (const record of recordsData) {
@@ -309,17 +298,6 @@ const Attendance = () => {
                         const recordWeek = Number(r.week);
                         const recordDay = String(r.day).trim();
                         
-                        console.log('📝 Checking record:', {
-                            studentId,
-                            recordWeek,
-                            recordDay,
-                            recordDate,
-                            status: r.status,
-                            matches: recordWeek === normalizedWeek && 
-                                    recordDay === normalizedDay && 
-                                    recordDate === normalizedDate
-                        });
-                        
                         // Check for exact match
                         if (recordWeek === normalizedWeek && 
                             recordDay === normalizedDay && 
@@ -329,13 +307,14 @@ const Attendance = () => {
                             if (r.remark) {
                                 remarksMap[studentId] = r.remark;
                             }
-                            console.log('✅ Match found for student:', studentId, 'status:', r.status);
                         }
                     }
                 }
                 
-                console.log('📊 Final status map:', statusMap);
-                console.log('📊 Marked for today:', markedForToday);
+                debug.component('Attendance', 'fetchAttendanceRecords - Records processed', { 
+                    markedForToday,
+                    matchedStudents: Object.keys(statusMap).length
+                });
             }
 
             setIsAttendanceMarked(markedForToday);
@@ -355,12 +334,14 @@ const Attendance = () => {
                         }
                     });
                     
-                    console.log('💾 Setting final status map:', finalStatusMap);
+                    debug.component('Attendance', 'fetchAttendanceRecords - Setting final status map', { 
+                      studentsCount: Object.keys(finalStatusMap).length
+                    });
                     setAttendanceStatus(finalStatusMap);
                     setRemarks(finalRemarksMap);
                 } else {
                     // No attendance found - set all to default 'present'
-                    console.log('⚠️ No attendance found, setting defaults');
+                    debug.component('Attendance', 'fetchAttendanceRecords - No attendance found, setting defaults');
                     const defaultStatus = {};
                     students.forEach(student => {
                         defaultStatus[student.id] = 'present';
@@ -370,7 +351,7 @@ const Attendance = () => {
                 }
             }
         } catch (error) {
-            console.error('Error fetching attendance records:', error);
+            debug.error('Error fetching attendance records:', error);
             setIsAttendanceMarked(false);
             setAttendanceRecords(null);
             showError('Failed to load attendance records');
@@ -424,18 +405,9 @@ const Attendance = () => {
     // Simple state-based validation
     if (!filterData.classId || !filterData.subjectId || !filterData.week || 
         !filterData.day || !filterData.date || !filterData.sessionId || !filterData.term) {
-        console.error('Missing required fields:', {
-            class: filterData.classId,
-            subject: filterData.subjectId,
-            week: filterData.week,
-            day: filterData.day,
-            date: filterData.date,
-            session: filterData.sessionId,
-            term: filterData.term,
-            currentSessionState: currentSession,
-            currentTermState: currentTerm
-        });
-        showError(`Please fill all required fields. Missing: ${Object.entries(filterData).filter(([k,v]) => !v).map(([k]) => k).join(', ')}`);
+        const missingFields = Object.entries(filterData).filter(([k,v]) => !v).map(([k]) => k);
+        debug.error('Attendance - Missing required fields:', { missingFields });
+        showError(`Please fill all required fields. Missing: ${missingFields.join(', ')}`);
         return;
     }
 
@@ -478,7 +450,7 @@ const Attendance = () => {
         await fetchAttendanceRecords();
         setIsAttendanceMarked(true);
     } catch (error) {
-        console.error('Error marking attendance:', error);
+        debug.error('Error marking attendance:', error);
         showError(error.message || 'Error marking attendance');
     } finally {
         setSubmitting(false);

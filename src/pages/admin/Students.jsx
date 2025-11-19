@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
@@ -28,15 +28,21 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 import EditStudentModal from '../../components/EditStudentModal';
+import debug from '../../utils/debug';
 
 const Students = () => {
   const navigate = useNavigate();
   const { showError, showSuccess } = useNotification();
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
+  const [userFormTeacherStatus, setUserFormTeacherStatus] = useState(null);
+  const hasRefreshedUserRef = useRef(false);
+  const lastUserIdRef = useRef(null);
   const [selectedClass, setSelectedClass] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [showFilters, setShowFilters] = useState(false);
+  const [filterGender, setFilterGender] = useState('');
+  const [filterClass, setFilterClass] = useState('');
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +55,9 @@ const Students = () => {
   // Role-based permissions - use useMemo to ensure they update when user changes
   const isAdmin = useMemo(() => user?.role === 'admin', [user?.role]);
   const isTeacher = useMemo(() => user?.role === 'teacher', [user?.role]);
-  const isFormTeacher = useMemo(() => isTeacher && (user?.is_form_teacher === true || user?.is_form_teacher === 1), [isTeacher, user?.is_form_teacher]);
+  // Use userFormTeacherStatus state if available, otherwise fall back to user.is_form_teacher
+  const effectiveFormTeacherStatus = userFormTeacherStatus !== null ? userFormTeacherStatus : (user?.is_form_teacher === true || user?.is_form_teacher === 1);
+  const isFormTeacher = useMemo(() => isTeacher && effectiveFormTeacherStatus, [isTeacher, effectiveFormTeacherStatus]);
   const canManageStudents = useMemo(() => isAdmin || isFormTeacher, [isAdmin, isFormTeacher]);
   // Only admin and form teachers can import/export
   const canImportExport = useMemo(() => isAdmin || isFormTeacher, [isAdmin, isFormTeacher]);
@@ -69,12 +77,38 @@ const Students = () => {
     return "Student Management";
   };
 
+  // Only refresh user data once when component mounts or user ID actually changes
   useEffect(() => {
-    if (user) {
+    if (user && user.id !== lastUserIdRef.current) {
+      // User ID changed, reset the refresh flag
+      hasRefreshedUserRef.current = false;
+      lastUserIdRef.current = user.id;
+    }
+
+    if (user && !hasRefreshedUserRef.current && user.role === 'teacher') {
+      hasRefreshedUserRef.current = true;
+      refreshUserData().then(updatedUser => {
+        if (updatedUser) {
+          setUserFormTeacherStatus(updatedUser.is_form_teacher);
+        }
+      }).catch(error => {
+        debug.error('Error refreshing user data:', error);
+        hasRefreshedUserRef.current = false; // Allow retry on error
+      });
+    } else if (user && !hasRefreshedUserRef.current) {
+      // For non-teachers, just mark as refreshed
+      hasRefreshedUserRef.current = true;
+    }
+  }, [user?.id, user?.role, refreshUserData]); // Only depend on user ID and role
+
+  // Fetch students and classes when user is available (only once per user ID)
+  useEffect(() => {
+    if (user && user.id) {
       fetchStudents();
       fetchClasses();
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Only depend on user ID to prevent loops
 
   // Update class counts when students change
   useEffect(() => {
@@ -103,9 +137,12 @@ const Students = () => {
         const teacherResponse = response.data || response;
         if (teacherResponse?.students) {
           studentsData = teacherResponse.students;
-          // Update user form teacher status
-          if (teacherResponse.is_form_teacher !== undefined) {
-            // User form teacher status updated
+          // Update user form teacher status from API response
+          if (teacherResponse.is_form_teacher !== undefined && user) {
+            setUserFormTeacherStatus(teacherResponse.is_form_teacher);
+            // Also update localStorage for persistence
+            const updatedUser = { ...user, is_form_teacher: teacherResponse.is_form_teacher };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
           }
         } else {
           studentsData = [];
@@ -121,20 +158,15 @@ const Students = () => {
         studentsData = [];
       }
       
-      // Debug: Log what we're getting
-      console.log('Students API Response:', response);
-      console.log('Students Data:', studentsData);
-      console.log('Is Array:', Array.isArray(studentsData));
-      console.log('Students Count:', studentsData?.length || 0);
-      
-      if (Array.isArray(studentsData) && studentsData.length > 0) {
-        console.log('First Student:', studentsData[0]);
-      }
+      debug.component('Students', 'fetchStudents - Data loaded', { 
+        count: studentsData?.length || 0,
+        isArray: Array.isArray(studentsData)
+      });
       
       setStudents(Array.isArray(studentsData) ? studentsData : []);
     } catch (error) {
       showError('Failed to load students');
-      console.error('Error fetching students:', error);
+      debug.error('Error fetching students:', error);
       setStudents([]); // Ensure students is always an array
     } finally {
       setLoading(false);
@@ -154,27 +186,45 @@ const Students = () => {
       }
       
       // Handle different response structures
-      let classData;
+      // API service returns { data: backendResponse, status }
+      // Backend returns { data: [...], total: X, message: "..." }
+      // So the structure is: response.data = { data: [...], total: X, message: "..." }
+      // Therefore: response.data.data = [...]
+      let classData = [];
       if (response?.data) {
-        // If response has data property, check if it's an array or has nested data
-        if (Array.isArray(response.data)) {
-          classData = response.data;
-        } else if (response.data?.data && Array.isArray(response.data.data)) {
+        // First check if response.data.data exists and is an array (standard backend structure)
+        if (response.data.data && Array.isArray(response.data.data)) {
           classData = response.data.data;
-        } else {
-          classData = [];
+        } 
+        // If response.data is directly an array (unlikely but possible)
+        else if (Array.isArray(response.data)) {
+          classData = response.data;
+        }
+        // Try to find any array property in response.data
+        else if (typeof response.data === 'object') {
+          const keys = Object.keys(response.data);
+          for (const key of keys) {
+            if (Array.isArray(response.data[key])) {
+              classData = response.data[key];
+              break;
+            }
+          }
         }
       } else if (Array.isArray(response)) {
         // If response is directly an array
         classData = response;
-      } else {
+      }
+      
+      // Ensure it's always an array
+      if (!Array.isArray(classData)) {
+        debug.warn('Students - Unexpected classes response structure:', response);
         classData = [];
       }
       
-      // Debug: Log class data
-      console.log('Students - Classes API Response:', response);
-      console.log('Students - Classes Data:', classData);
-      console.log('Students - Classes Array:', Array.isArray(classData) ? classData : 'NOT AN ARRAY');
+      debug.component('Students', 'fetchClasses - Data loaded', { 
+        count: classData.length,
+        isArray: Array.isArray(classData)
+      });
       
       // Store raw class data first, counts will be updated later
       const allClasses = [
@@ -187,10 +237,9 @@ const Students = () => {
         })) : [])
       ];
       
-      console.log('Students - All Classes:', allClasses);
       setClasses(allClasses);
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      debug.error('Error fetching classes:', error);
       // Don't show error for teachers if they have no assignments
       if (user?.role === 'teacher' && error.response?.status === 404) {
         setClasses([{ id: 'all', name: 'All Classes', count: 0, color: 'bg-gray-100 text-gray-800' }]);
@@ -227,35 +276,41 @@ const Students = () => {
     return colors[index];
   };
 
-  // Filter students based on selected class and search term
+  // Filter students based on selected class, search term, and additional filters
   const filteredStudents = useMemo(() => {
     if (!Array.isArray(students) || students.length === 0) return [];
 
-    // Simple debugging
-    console.log('=== FILTERING TRIGGERED ===');
-    console.log('selectedClass:', selectedClass, 'type:', typeof selectedClass);
-    console.log('searchTerm:', searchTerm, 'length:', searchTerm?.length || 0);
-    console.log('totalStudents:', students.length);
-
     const filtered = students.filter(student => {
+      // Class filter (from tabs)
       const matchesClass = selectedClass === 'all' || student.class_id?.toString() === selectedClass?.toString();
+      
+      // Additional class filter (from filter panel)
+      const matchesFilterClass = !filterClass || filterClass === '' || student.class_id?.toString() === filterClass?.toString();
+      
+      // Gender filter
+      const matchesGender = !filterGender || filterGender === '' || student.gender?.toLowerCase() === filterGender.toLowerCase();
+      
+      // Search filter
       const matchesSearch = !searchTerm || searchTerm === '' || 
                            student.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.email?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Debug individual student
-      if (selectedClass !== 'all') {
-        console.log(`Student ${student.first_name}: class_id=${student.class_id}, selectedClass=${selectedClass}, matchesClass=${matchesClass}, matchesSearch=${matchesSearch}`);
-      }
-      
-      return matchesClass && matchesSearch;
+      return matchesClass && matchesFilterClass && matchesGender && matchesSearch;
     });
     
-    console.log('Final filtered count:', filtered.length);
+    debug.component('Students', 'Filtering students', { 
+      selectedClass,
+      filterClass,
+      filterGender,
+      searchTermLength: searchTerm?.length || 0,
+      totalStudents: students.length,
+      filteredCount: filtered.length
+    });
+    
     return filtered;
-  }, [selectedClass, searchTerm, students]);
+  }, [selectedClass, filterClass, filterGender, searchTerm, students]);
 
   const handleDeleteStudent = useCallback(async () => {
     if (!deleteModal.student) return;
@@ -272,7 +327,7 @@ const Students = () => {
       fetchStudents(); // Refresh the list
     } catch (error) {
       showError('Failed to delete student');
-      console.error('Error deleting student:', error);
+      debug.error('Error deleting student:', error);
     } finally {
       setSubmitting(false);
     }
@@ -305,17 +360,16 @@ const Students = () => {
   }, []);
 
   const handleViewStudent = useCallback((student) => {
+    // Navigate to student details page instead of results
     if (user?.role === 'admin') {
-      // Admin goes to admin route
-      navigate(`/admin/students/${student.id}/results`);
-    } else if (user?.role === 'teacher' && user?.is_form_teacher) {
-      // Form teachers go to teacher route
-      navigate(`/teacher/student-results/${student.id}`);
+      navigate(`/admin/students/${student.id}/details`);
+    } else if (user?.role === 'teacher' && effectiveFormTeacherStatus) {
+      navigate(`/teacher/students/${student.id}/details`);
     } else {
-      // Regular teachers cannot view results
-      showError('Access denied. Only form teachers can view student results.');
+      // Regular teachers cannot view details
+      showError('Access denied. Only form teachers can view student details.');
     }
-  }, [navigate, user]);
+  }, [navigate, user, effectiveFormTeacherStatus]);
 
   const getClassColorForStudent = useCallback((className) => {
     const classItem = classes.find(c => c.name === className);
@@ -340,7 +394,7 @@ const Students = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">
             Students Management
@@ -351,14 +405,14 @@ const Students = () => {
           {isTeacher && (
             <div className="mt-2 flex items-center text-sm text-blue-600">
               <Shield className="mr-2 h-4 w-4" />
-              {user?.is_form_teacher 
+              {effectiveFormTeacherStatus 
                 ? 'You have form teacher permissions for some classes'
                 : 'You can view students but cannot manage them'
               }
             </div>
           )}
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           {canImportExport && user && (
             <>
               <button 
@@ -455,10 +509,9 @@ const Students = () => {
               <button
                 key={classItem.id}
                 onClick={() => {
-                  console.log('Class tab clicked:', {
+                  debug.component('Students', 'Class tab clicked', { 
                     classId: classItem.id,
-                    className: classItem.name,
-                    currentSelectedClass: selectedClass
+                    className: classItem.name
                   });
                   setSelectedClass(classItem.id);
                 }}
@@ -533,25 +586,37 @@ const Students = () => {
           {/* Additional Filters */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <select className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:border-transparent">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <select 
+                  value={filterGender}
+                  onChange={(e) => setFilterGender(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                  style={{ '--tw-ring-color': COLORS.primary.red }}
+                >
                   <option value="">All Genders</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                 </select>
-                <select className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:border-transparent">
-                  <option value="">All Subjects</option>
-                  <option value="mathematics">Mathematics</option>
-                  <option value="english">English</option>
-                  <option value="physics">Physics</option>
-                  <option value="chemistry">Chemistry</option>
-                </select>
-                <input
-                  type="date"
+                <select 
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:border-transparent"
-                  placeholder="Date of Birth"
-                />
-                <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200">
+                  style={{ '--tw-ring-color': COLORS.primary.red }}
+                >
+                  <option value="">All Classes</option>
+                  {classes.filter(c => c.id !== 'all').map((classItem) => (
+                    <option key={classItem.id} value={classItem.id}>
+                      {classItem.name}
+                    </option>
+                  ))}
+                </select>
+                <button 
+                  onClick={() => {
+                    setFilterGender('');
+                    setFilterClass('');
+                  }}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200"
+                >
                   Clear Filters
                 </button>
               </div>
@@ -817,9 +882,15 @@ const Students = () => {
           {filteredStudents.length === 0 && (
             <div className="text-center py-12">
               <Users className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No students found</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                {isTeacher && students.length === 0
+                  ? 'No students offering your assigned subjects yet'
+                  : 'No students found'}
+              </h3>
               <p className="mt-1 text-sm text-gray-500">
-                Try adjusting your search or filter criteria.
+                {isTeacher && students.length === 0
+                  ? 'Students will appear here once they are enrolled in subjects you teach.'
+                  : 'Try adjusting your search or filter criteria.'}
               </p>
             </div>
           )}
@@ -872,7 +943,7 @@ const Students = () => {
                       showSuccess('Template downloaded');
                     } catch (error) {
                       showError(error.response?.data?.message || error.message || 'Failed to download template');
-                      console.error('Template download error:', error);
+                      debug.error('Template download error:', error);
                     }
                   }}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"

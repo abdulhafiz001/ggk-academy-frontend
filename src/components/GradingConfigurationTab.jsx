@@ -4,9 +4,10 @@ import { COLORS } from '../constants/colors';
 import API from '../services/API';
 import { useNotification } from '../contexts/NotificationContext';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import debug from '../utils/debug';
 
 const GradingConfigurationTab = () => {
-    const { showNotification } = useNotification();
+    const { showSuccess, showError } = useNotification();
     const [configurations, setConfigurations] = useState([]);
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,12 +40,25 @@ const GradingConfigurationTab = () => {
     const fetchConfigurations = async () => {
         try {
             const response = await API.getGradingConfigurations();
-            if (response?.data) {
-                setConfigurations(response.data);
+            let configsData = [];
+            
+            // Handle different response structures
+            if (Array.isArray(response)) {
+                configsData = response;
+            } else if (response?.data) {
+                if (Array.isArray(response.data)) {
+                    configsData = response.data;
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    configsData = response.data.data;
+                }
             }
+            
+            // Ensure it's always an array
+            setConfigurations(Array.isArray(configsData) ? configsData : []);
         } catch (error) {
-            console.error('Error fetching configurations:', error);
-            showNotification('Error loading grading configurations', 'error');
+            debug.error('Error fetching configurations:', error);
+            showError('Error loading grading configurations');
+            setConfigurations([]); // Set empty array on error
         } finally {
             setLoading(false);
         }
@@ -61,7 +75,7 @@ const GradingConfigurationTab = () => {
             }
             setClasses(classData || []);
         } catch (error) {
-            console.error('Error fetching classes:', error);
+            debug.error('Error fetching classes:', error);
         }
     };
 
@@ -110,14 +124,14 @@ const GradingConfigurationTab = () => {
 
     const handleSubmit = async () => {
         if (!formData.name || formData.grades.length === 0 || formData.class_ids.length === 0) {
-            showNotification('Please fill all required fields', 'error');
+            showError('Please fill all required fields');
             return;
         }
 
         // Validate grades
         for (const grade of formData.grades) {
             if (!grade.grade || grade.min < 0 || grade.max > 100 || grade.min > grade.max) {
-                showNotification('Please ensure all grade ranges are valid (0-100)', 'error');
+                showError('Please ensure all grade ranges are valid (0-100)');
                 return;
             }
         }
@@ -126,16 +140,16 @@ const GradingConfigurationTab = () => {
         try {
             if (editingConfig) {
                 await API.updateGradingConfiguration(editingConfig.id, formData);
-                showNotification('Grading configuration updated successfully', 'success');
+                showSuccess('Grading configuration updated successfully');
             } else {
                 await API.createGradingConfiguration(formData);
-                showNotification('Grading configuration created successfully', 'success');
+                showSuccess('Grading configuration created successfully');
             }
             fetchConfigurations();
             resetForm();
         } catch (error) {
-            console.error('Error saving configuration:', error);
-            showNotification(error.message || 'Error saving grading configuration', 'error');
+            debug.error('Error saving configuration:', error);
+            showError(error.message || 'Error saving grading configuration');
         } finally {
             setSubmitting(false);
         }
@@ -160,12 +174,12 @@ const GradingConfigurationTab = () => {
         setSubmitting(true);
         try {
             await API.deleteGradingConfiguration(deleteModal.config.id);
-            showNotification('Grading configuration deleted successfully', 'success');
+            showSuccess('Grading configuration deleted successfully');
             fetchConfigurations();
             setDeleteModal({ isOpen: false, config: null });
         } catch (error) {
-            console.error('Error deleting configuration:', error);
-            showNotification(error.message || 'Error deleting grading configuration', 'error');
+            debug.error('Error deleting configuration:', error);
+            showError(error.message || 'Error deleting grading configuration');
         } finally {
             setSubmitting(false);
         }
@@ -174,11 +188,11 @@ const GradingConfigurationTab = () => {
     const handleSetDefault = async (config) => {
         try {
             await API.setDefaultGradingConfiguration(config.id);
-            showNotification('Default grading configuration updated', 'success');
+            showSuccess('Default grading configuration updated');
             fetchConfigurations();
         } catch (error) {
-            console.error('Error setting default:', error);
-            showNotification(error.message || 'Error setting default configuration', 'error');
+            debug.error('Error setting default:', error);
+            showError(error.message || 'Error setting default configuration');
         }
     };
 

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { COLORS } from '../constants/colors';
 import API from '../services/API';
 import { useAuth } from '../contexts/AuthContext';
+import debug from '../utils/debug';
 
 const AcademicSessionWarningModal = () => {
   const [showModal, setShowModal] = useState(false);
@@ -24,8 +25,7 @@ const AcademicSessionWarningModal = () => {
     }
 
     const userRole = user?.role;
-    console.log('AcademicSessionWarningModal - User:', user);
-    console.log('AcademicSessionWarningModal - User Role:', userRole);
+    debug.component('AcademicSessionWarningModal', 'User loaded', { userRole });
     
     // Only check for admin/teacher users
     if (userRole === 'admin' || userRole === 'teacher') {
@@ -38,33 +38,32 @@ const AcademicSessionWarningModal = () => {
   const checkAcademicSession = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Checking academic session...');
+      debug.component('AcademicSessionWarningModal', 'Checking academic session');
       
       // Use the public endpoint that doesn't require authentication
       const response = await API.getCurrentAcademicSession();
       const data = response.data || response;
       
-      console.log('✅ Academic session check response:', data);
-      console.log('✅ has_session:', data.has_session);
-      console.log('✅ has_term:', data.has_term);
+      debug.component('AcademicSessionWarningModal', 'Session check response', { 
+        has_session: data.has_session, 
+        has_term: data.has_term 
+      });
       
       // Show modal if no session or no term is set
       if (!data.has_session || !data.has_term) {
-        console.log('⚠️ No session or term found, showing modal');
+        debug.component('AcademicSessionWarningModal', 'No session or term found, showing modal');
         setSessionInfo(data);
         setShowModal(true);
       } else {
-        console.log('✅ Session and term are set, not showing modal');
+        debug.component('AcademicSessionWarningModal', 'Session and term are set, not showing modal');
         setShowModal(false);
       }
     } catch (error) {
-      console.error('❌ Error checking academic session:', error);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error details:', error.response);
+      debug.error('Error checking academic session:', error);
       
       // Show modal if API call fails (likely means no session is set or route not found)
       // This handles cases where the endpoint returns 404 or other errors
-      console.log('⚠️ API call failed, showing modal (assuming no session)');
+      debug.component('AcademicSessionWarningModal', 'API call failed, showing modal (assuming no session)');
       setSessionInfo({
         has_session: false,
         has_term: false,

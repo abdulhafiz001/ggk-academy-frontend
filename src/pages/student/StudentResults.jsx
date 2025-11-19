@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { COLORS } from '../../constants/colors';
 import { useAuth } from '../../contexts/AuthContext';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
+import debug from '../../utils/debug';
 // Remove html2canvas and jsPDF imports - we'll use simpler methods
 // Dynamic import for download features
 const StudentResults = () => {
@@ -14,16 +15,53 @@ const StudentResults = () => {
   const [admissionSession, setAdmissionSession] = useState(null);
   const [admissionTerm, setAdmissionTerm] = useState(null);
   const [studentSubjects, setStudentSubjects] = useState([]);
+  const [classHistory, setClassHistory] = useState({});
+  const [availableSessionsData, setAvailableSessionsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { showError, showSuccess } = useNotification();
 
-  const studentInfo = {
+  // Get class for selected session from class history
+  const getClassForSession = (sessionName) => {
+    if (classHistory && classHistory[sessionName]) {
+      const classData = classHistory[sessionName];
+      // Handle both object and string formats
+      if (typeof classData === 'object' && classData.name) {
+        return classData.name;
+      } else if (typeof classData === 'string') {
+        return classData;
+      }
+    }
+    // Fallback to current class if no history
+    return user?.school_class?.name || "Loading...";
+  };
+
+  // Get promotion status for third term
+  const getPromotionStatus = () => {
+    if (selectedTerm !== 'Third Term') {
+      return null;
+    }
+    
+    // Check user status
+    if (user?.status === 'graduated') {
+      return 'graduated';
+    } else if (user?.status === 'repeated') {
+      return 'repeated';
+    } else if (user?.promoted_this_session) {
+      return 'promoted';
+    }
+    
+    return null;
+  };
+
+  // Make studentInfo reactive to selectedSession and classHistory changes
+  const studentInfo = useMemo(() => ({
     name: user ? `${user.first_name} ${user.last_name}` : "Loading...",
     admissionNumber: user?.admission_number || "Loading...",
-    class: user?.school_class?.name || "Loading...",
-    session: currentSession?.name || "Not Set"
-  };
+    class: selectedSession ? getClassForSession(selectedSession) : (user?.school_class?.name || "Loading..."),
+    session: selectedSession || (currentSession?.name || "Not Set"),
+    promotionStatus: getPromotionStatus()
+  }), [selectedSession, classHistory, user, currentSession, selectedTerm]);
 
   const schoolInfo = {
     name: 'G-LOVE ACADEMY',
@@ -49,7 +87,7 @@ const StudentResults = () => {
         }).filter(id => id !== null);
         setStudentSubjects(subjectIds);
       } catch (err) {
-        console.error('Error fetching student subjects:', err);
+        debug.error('Error fetching student subjects:', err);
       }
     };
 
@@ -68,6 +106,11 @@ const StudentResults = () => {
         const resultsData = responseData.results || {};
         setResults(resultsData);
         
+        // Store class history from API response
+        if (responseData.class_history) {
+          setClassHistory(responseData.class_history);
+        }
+        
         // Set current session and admission info
         if (responseData.current_session) {
           setCurrentSession(responseData.current_session);
@@ -82,6 +125,41 @@ const StudentResults = () => {
         // Get available sessions from results keys
         const sessions = Object.keys(resultsData);
         setAvailableSessions(sessions);
+        
+        // Store session data with IDs for PDF download
+        const sessionsWithIds = [];
+        if (responseData.current_session) {
+          sessionsWithIds.push({
+            name: responseData.current_session.name,
+            id: responseData.current_session.id
+          });
+        }
+        // Add other sessions if available
+        sessions.forEach(sessionName => {
+          if (!sessionsWithIds.find(s => s.name === sessionName)) {
+            // Try to find session ID from results
+            const sessionTerms = resultsData[sessionName];
+            if (sessionTerms) {
+              // Get first term's results to find session ID
+              const firstTerm = Object.keys(sessionTerms)[0];
+              if (firstTerm && sessionTerms[firstTerm] && sessionTerms[firstTerm].length > 0) {
+                const firstResult = sessionTerms[firstTerm][0];
+                if (firstResult.academic_session) {
+                  sessionsWithIds.push({
+                    name: sessionName,
+                    id: firstResult.academic_session.id
+                  });
+                } else if (firstResult.academic_session_id) {
+                  sessionsWithIds.push({
+                    name: sessionName,
+                    id: firstResult.academic_session_id
+                  });
+                }
+              }
+            }
+          }
+        });
+        setAvailableSessionsData(sessionsWithIds);
         
         // Set default selected session (current or first available)
         let defaultSession = '';
@@ -427,10 +505,53 @@ const StudentResults = () => {
               padding: ${forPrint ? '10mm' : '0'};
               background: white;
               font-size: ${forPrint ? '10px' : '14px'};
+              position: relative;
             }
+            /* Watermark */
+            .watermark {
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) rotate(-45deg);
+              opacity: 0.08;
+              z-index: 0;
+              text-align: center;
+              width: 100%;
+              height: 100vh;
+              pointer-events: none;
+              overflow: hidden;
+            }
+            .watermark-content {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            .watermark-logo {
+              width: 250px;
+              height: 250px;
+              margin-bottom: 30px;
+              opacity: 0.12;
+              object-fit: contain;
+            }
+            .watermark-text {
+              font-size: 80px;
+              font-weight: bold;
+              color: #aecb1f;
+              text-transform: uppercase;
+              letter-spacing: 10px;
+              white-space: nowrap;
+            }
+            /* Ensure content appears above watermark */
             .result-content { 
               max-width: ${forPrint ? '100%' : '800px'}; 
-              margin: 0 auto; 
+              margin: 0 auto;
+              position: relative;
+              z-index: 1;
             }
             .school-header { 
               text-align: center; 
@@ -540,6 +661,14 @@ const StudentResults = () => {
           </style>
         </head>
         <body>
+          <!-- Watermark -->
+          <div class="watermark">
+            <div class="watermark-content">
+              <img src="${schoolInfo.logo}" alt="School Logo" class="watermark-logo" />
+              <div class="watermark-text">${schoolInfo.name}</div>
+            </div>
+          </div>
+          
           <div class="result-content">
             <div class="school-header">
               <img src="${schoolInfo.logo}" alt="School Logo" class="school-logo" />
@@ -558,6 +687,20 @@ const StudentResults = () => {
                 <div><strong>Session:</strong> ${selectedSession}</div>
               </div>
               <div style="margin-top: 10px;"><strong>Term:</strong> ${selectedTerm}</div>
+              ${studentInfo.promotionStatus ? `
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                  <strong>Promotion Status:</strong> 
+                  <span style="font-weight: bold; 
+                    ${studentInfo.promotionStatus === 'promoted' ? 'color: #22c55e;' : ''}
+                    ${studentInfo.promotionStatus === 'graduated' ? 'color: #3b82f6;' : ''}
+                    ${studentInfo.promotionStatus === 'repeated' ? 'color: #ef4444;' : ''}
+                  ">
+                    ${studentInfo.promotionStatus === 'promoted' ? '✓ PROMOTED TO NEXT CLASS' : ''}
+                    ${studentInfo.promotionStatus === 'graduated' ? '🎓 GRADUATED' : ''}
+                    ${studentInfo.promotionStatus === 'repeated' ? '⚠ REPEATED - TO REPEAT CURRENT CLASS' : ''}
+                  </span>
+                </div>
+              ` : ''}
             </div>
 
             <table>
@@ -660,7 +803,7 @@ const StudentResults = () => {
       }, 1000);
     } catch (error) {
       alert('Failed to print result. Please try again.');
-      console.error('Print error:', error);
+      debug.error('Print error:', error);
     }
   };
 
@@ -673,8 +816,8 @@ const StudentResults = () => {
         return;
       }
 
-      if (!currentSession) {
-        showError('No academic session found. Please contact the administrator.');
+      if (!selectedSession) {
+        showError('Please select an academic session');
         return;
       }
 
@@ -688,15 +831,32 @@ const StudentResults = () => {
       const term = termMapping[selectedTerm] || 'first';
       
       // Get academic session ID from selected session
-      const academicSessionId = currentSession?.id || null;
+      // First try to find it from availableSessionsData
+      let academicSessionId = null;
+      const sessionData = availableSessionsData.find(s => s.name === selectedSession);
+      if (sessionData) {
+        academicSessionId = sessionData.id;
+      } else if (currentSession && currentSession.name === selectedSession) {
+        academicSessionId = currentSession.id;
+      } else {
+        // Try to get from results data
+        const currentResults = getCurrentResults();
+        if (currentResults.length > 0 && currentResults[0].academic_session) {
+          academicSessionId = currentResults[0].academic_session.id;
+        } else if (currentResults.length > 0 && currentResults[0].academic_session_id) {
+          academicSessionId = currentResults[0].academic_session_id;
+        }
+      }
+      
+      if (!academicSessionId) {
+        showError('Could not find academic session. Please contact the administrator.');
+        return;
+      }
       
       const params = {
         term: term,
+        academic_session_id: academicSessionId,
       };
-      
-      if (academicSessionId) {
-        params.academic_session_id = academicSessionId;
-      }
       
       await API.generateStudentReportCardSelf(params);
       
@@ -704,7 +864,7 @@ const StudentResults = () => {
     } catch (error) {
       const errorMessage = error.message || 'Failed to generate PDF report card. Please ensure you are logged in and have the required permissions.';
       showError(errorMessage);
-      console.error('PDF generation error:', error);
+      debug.error('PDF generation error:', error);
     }
   };
 
@@ -730,8 +890,19 @@ const StudentResults = () => {
           <div>
             <h2 className="text-xl font-semibold text-gray-900">{studentInfo.name}</h2>
             <p className="text-sm text-gray-500">
-              {studentInfo.class} • {studentInfo.admissionNumber} • Current Session: {studentInfo.session}
+              {studentInfo.class} • {studentInfo.admissionNumber} • Session: {studentInfo.session}
             </p>
+            {studentInfo.promotionStatus && (
+              <p className={`text-sm font-semibold mt-1 ${
+                studentInfo.promotionStatus === 'promoted' ? 'text-green-600' :
+                studentInfo.promotionStatus === 'graduated' ? 'text-blue-600' :
+                studentInfo.promotionStatus === 'repeated' ? 'text-red-600' : ''
+              }`}>
+                {studentInfo.promotionStatus === 'promoted' && '✓ PROMOTED TO NEXT CLASS'}
+                {studentInfo.promotionStatus === 'graduated' && '🎓 GRADUATED'}
+                {studentInfo.promotionStatus === 'repeated' && '⚠ REPEATED - TO REPEAT CURRENT CLASS'}
+              </p>
+            )}
             {admissionSession && (
               <p className="text-xs text-gray-400 mt-1">
                 Admitted: {admissionSession.name} - {admissionTerm ? `${admissionTerm.charAt(0).toUpperCase() + admissionTerm.slice(1)} Term` : ''}
@@ -973,8 +1144,8 @@ const StudentResults = () => {
         )}
       </div>
 
-        {/* Teacher/Principal Remarks */}
-        {scaledResults.length > 0 && (
+        {/* Teacher/Principal Remarks - Only show when all scores are complete */}
+        {scaledResults.length > 0 && canDownloadOrPrint && (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded shadow">
               <h4 className="font-semibold mb-2">Teacher's Remark</h4>
@@ -984,6 +1155,15 @@ const StudentResults = () => {
               <h4 className="font-semibold mb-2">Principal's Remark</h4>
               <div className="w-full border border-gray-300 rounded p-2 bg-gray-50 text-gray-700 min-h-[48px]">{principalRemark}</div>
             </div>
+          </div>
+        )}
+        
+        {/* Show message when scores are incomplete */}
+        {scaledResults.length > 0 && !canDownloadOrPrint && (
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Teacher's and Principal's remarks will be available once all subjects have complete scores recorded (First CA, Second CA, and Exam scores).
+            </p>
           </div>
         )}
         {/* Grade Scale Table */}

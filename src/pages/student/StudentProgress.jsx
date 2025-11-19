@@ -55,20 +55,36 @@ const StudentProgress = () => {
     // Flatten to get all terms across all sessions
     const allTerms = [];
     const termData = {};
+    const termSessions = {}; // Track which session each term belongs to
     
     Object.entries(results).forEach(([session, sessionResults]) => {
       Object.entries(sessionResults).forEach(([term, termResults]) => {
         const termKey = `${session} - ${term}`;
         allTerms.push(termKey);
         termData[termKey] = termResults || [];
+        termSessions[termKey] = session; // Store session for each term
       });
     });
     
-    const terms = allTerms;
+    // Sort terms chronologically (by session and term order)
+    const sortedTerms = allTerms.sort((a, b) => {
+      const [sessionA, termA] = a.split(' - ');
+      const [sessionB, termB] = b.split(' - ');
+      
+      // First compare sessions
+      if (sessionA !== sessionB) {
+        return sessionA.localeCompare(sessionB);
+      }
+      
+      // Then compare terms within same session
+      const termOrder = { 'First Term': 1, 'Second Term': 2, 'Third Term': 3 };
+      return (termOrder[termA] || 0) - (termOrder[termB] || 0);
+    });
     
     const processedData = {
-      terms,
+      terms: sortedTerms,
       termData: {},
+      termSessions, // Store session mapping
       overallStats: {
         totalSubjects: user?.student_subjects?.length || 0,
         completedAssessments: 0,
@@ -79,9 +95,10 @@ const StudentProgress = () => {
 
     let totalScore = 0;
     let totalAssessments = 0;
+    let allSubjectScores = {}; // Track scores per subject across all terms
 
-    terms.forEach(term => {
-      const termResults = results[term] || [];
+    sortedTerms.forEach(term => {
+      const termResults = termData[term] || [];
       let termTotal = 0;
       let termCount = 0;
 
@@ -96,16 +113,22 @@ const StudentProgress = () => {
         totalScore += total;
         totalAssessments++;
 
+        // Track subject scores for trend analysis
+        const subjectName = result.subject?.name || 'Unknown Subject';
+        if (!allSubjectScores[subjectName]) {
+          allSubjectScores[subjectName] = [];
+        }
+        allSubjectScores[subjectName].push({
+          term,
+          score: total,
+          grade: calculateGrade(total)
+        });
+
         // Calculate grade
-        let grade = 'F';
-        if (total >= 80) grade = 'A';
-        else if (total >= 70) grade = 'B';
-        else if (total >= 60) grade = 'C';
-        else if (total >= 50) grade = 'D';
-        else if (total >= 40) grade = 'E';
+        const grade = calculateGrade(total);
 
         return {
-          subject: result.subject?.name || 'Unknown Subject',
+          subject: subjectName,
           score: total,
           percentage: total,
           grade: grade,
@@ -117,7 +140,7 @@ const StudentProgress = () => {
 
       processedData.termData[term] = {
         totalScore: termTotal,
-        average: termCount > 0 ? Math.round(termTotal / termCount) : 0,
+        average: termCount > 0 ? parseFloat((termTotal / termCount).toFixed(2)) : 0,
         grade: termCount > 0 ? calculateOverallGrade(termTotal / termCount) : 'N/A',
         subjects: termCount,
         subjectBreakdown
@@ -126,9 +149,19 @@ const StudentProgress = () => {
 
     processedData.overallStats.completedAssessments = totalAssessments;
     processedData.overallStats.totalScore = totalScore;
-    processedData.overallStats.averageScore = totalAssessments > 0 ? Math.round(totalScore / totalAssessments) : 0;
+    processedData.overallStats.averageScore = totalAssessments > 0 ? parseFloat((totalScore / totalAssessments).toFixed(2)) : 0;
+    processedData.subjectTrends = allSubjectScores; // Store for trend analysis
 
     return processedData;
+  };
+
+  const calculateGrade = (score) => {
+    if (score >= 80) return 'A';
+    if (score >= 70) return 'B';
+    if (score >= 60) return 'C';
+    if (score >= 50) return 'D';
+    if (score >= 40) return 'E';
+    return 'F';
   };
 
   const calculateOverallGrade = (average) => {
@@ -181,9 +214,15 @@ const StudentProgress = () => {
   }
 
   const currentTermData = selectedTerm ? progressData.termData[selectedTerm] : null;
-  const previousTerm = progressData.terms[progressData.terms.indexOf(selectedTerm) - 1];
+  const currentTermIndex = progressData.terms.indexOf(selectedTerm);
+  const previousTerm = currentTermIndex > 0 ? progressData.terms[currentTermIndex - 1] : null;
   const previousTermData = previousTerm ? progressData.termData[previousTerm] : null;
-  const overallImprovement = previousTermData ? currentTermData.average - previousTermData.average : 0;
+  const overallImprovement = previousTermData && currentTermData ? 
+    parseFloat((currentTermData.average - previousTermData.average).toFixed(2)) : 0;
+  
+  // Calculate improvement percentage
+  const improvementPercentage = previousTermData && previousTermData.average > 0 ?
+    parseFloat(((overallImprovement / previousTermData.average) * 100).toFixed(1)) : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -259,11 +298,13 @@ const StudentProgress = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Current Average</p>
-                  <p className="text-3xl font-bold text-gray-900">{currentTermData.average}%</p>
+                  <p className="text-3xl font-bold text-gray-900">{currentTermData.average.toFixed(2)}%</p>
                   {previousTermData && (
                     <p className={`text-sm ${getImprovementColor(overallImprovement)} flex items-center mt-1`}>
                       {overallImprovement > 0 ? '↗' : overallImprovement < 0 ? '↘' : '→'} 
-                      {Math.abs(overallImprovement).toFixed(1)}% from {previousTerm}
+                      {Math.abs(overallImprovement).toFixed(2)}% 
+                      {improvementPercentage !== 0 && ` (${improvementPercentage > 0 ? '+' : ''}${improvementPercentage.toFixed(1)}%)`}
+                      {' '}from {previousTerm}
                     </p>
                   )}
                 </div>
@@ -279,8 +320,8 @@ const StudentProgress = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Score</p>
-                  <p className="text-3xl font-bold text-gray-900">{currentTermData.totalScore}</p>
-                  <p className="text-sm text-gray-500 mt-1">out of {currentTermData.subjects * 100} possible</p>
+                  <p className="text-3xl font-bold text-gray-900">{currentTermData.totalScore.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500 mt-1">out of {currentTermData.subjects * 100} possible ({((currentTermData.totalScore / (currentTermData.subjects * 100)) * 100).toFixed(1)}%)</p>
                 </div>
                 <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                   <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -372,6 +413,59 @@ const StudentProgress = () => {
           </div>
         )}
 
+        {/* Subject Trends */}
+        {progressData.subjectTrends && Object.keys(progressData.subjectTrends).length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Subject Performance Trends</h3>
+              <p className="text-sm text-gray-600 mt-1">Track your performance across all subjects over time</p>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(progressData.subjectTrends).map(([subjectName, scores]) => {
+                  if (scores.length < 2) return null; // Only show trends if there are at least 2 data points
+                  
+                  const latestScore = scores[scores.length - 1];
+                  const previousScore = scores[scores.length - 2];
+                  const trend = latestScore.score - previousScore.score;
+                  const trendPercentage = previousScore.score > 0 ? 
+                    ((trend / previousScore.score) * 100).toFixed(1) : 0;
+                  
+                  return (
+                    <div key={subjectName} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-900">{subjectName}</h4>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getGradeColor(latestScore.grade)}`}>
+                          {latestScore.grade}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Latest Score:</span>
+                          <span className="font-semibold">{latestScore.score.toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Previous:</span>
+                          <span className="text-gray-700">{previousScore.score.toFixed(2)}%</span>
+                        </div>
+                        {trend !== 0 && (
+                          <div className={`flex justify-between items-center pt-1 border-t ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className="text-xs">Trend:</span>
+                            <span className="text-xs font-semibold">
+                              {trend > 0 ? '↗' : '↘'} {Math.abs(trend).toFixed(2)}% 
+                              {trendPercentage !== 0 && ` (${trend > 0 ? '+' : ''}${trendPercentage}%)`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Progress Timeline */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-200">
@@ -384,32 +478,53 @@ const StudentProgress = () => {
               <div className="space-y-8">
                 {progressData.terms.map((term, index) => {
                   const termData = progressData.termData[term];
+                  const prevTermIndex = index > 0 ? index - 1 : -1;
+                  const prevTermData = prevTermIndex >= 0 ? progressData.termData[progressData.terms[prevTermIndex]] : null;
+                  const termImprovement = prevTermData && termData.average > 0 ? 
+                    parseFloat((termData.average - prevTermData.average).toFixed(2)) : null;
+                  
                   return (
                     <div key={term} className="relative flex items-start space-x-4">
                       <div className={`w-4 h-4 rounded-full border-2 ${termData.average > 0 ? 'bg-blue-600 border-blue-600' : 'bg-gray-300 border-gray-300'} relative z-10`}></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-lg font-semibold text-gray-900">{term}</h4>
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-900">{term}</h4>
+                            {progressData.termSessions[term] && (
+                              <p className="text-xs text-gray-500">{progressData.termSessions[term]}</p>
+                            )}
+                          </div>
                           {termData.average > 0 && (
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getGradeColor(termData.grade)}`}>
-                              {termData.grade}
-                            </span>
+                            <div className="flex items-center space-x-2">
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getGradeColor(termData.grade)}`}>
+                                {termData.grade}
+                              </span>
+                            </div>
                           )}
                         </div>
                         {termData.average > 0 ? (
-                          <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Average:</span>
-                              <span className="ml-2 font-semibold text-gray-900">{termData.average}%</span>
+                          <div className="mt-2 space-y-2">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-600">Average:</span>
+                                <span className="ml-2 font-semibold text-gray-900">{termData.average.toFixed(2)}%</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Total Score:</span>
+                                <span className="ml-2 font-semibold text-gray-900">{termData.totalScore.toFixed(2)}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Subjects:</span>
+                                <span className="ml-2 font-semibold text-gray-900">{termData.subjects}</span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-gray-600">Total Score:</span>
-                              <span className="ml-2 font-semibold text-gray-900">{termData.totalScore}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Subjects:</span>
-                              <span className="ml-2 font-semibold text-gray-900">{termData.subjects}</span>
-                            </div>
+                            {termImprovement !== null && prevTermData && (
+                              <div className={`text-xs ${getImprovementColor(termImprovement)}`}>
+                                {termImprovement > 0 ? '↗' : termImprovement < 0 ? '↘' : '→'} 
+                                {' '}{Math.abs(termImprovement).toFixed(2)}% 
+                                {termImprovement !== 0 && ` from ${progressData.terms[prevTermIndex]}`}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <p className="text-gray-500 text-sm mt-2">Results pending</p>

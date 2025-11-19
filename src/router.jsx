@@ -24,6 +24,7 @@ const ContextWrapper = ({ children }) => (
 import Home from './pages/Home';
 import StudentLogin from './pages/auth/StudentLogin';
 import AdminLogin from './pages/auth/AdminLogin';
+import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Student pages
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -37,6 +38,7 @@ import StudentProfile from './pages/student/StudentProfile';
 import AdminDashboard from './pages/admin/Dashboard';
 import Students from './pages/admin/Students';
 import AdminStudentResults from './pages/admin/StudentResults';
+import StudentDetails from './pages/admin/StudentDetails';
 import AddStudent from './pages/admin/AddStudent';
 import ManageScores from './pages/admin/ManageScores';
 import Classes from './pages/admin/Classes';
@@ -88,6 +90,24 @@ const router = createBrowserRouter([
       {
         path: '/auth/student/login',
         element: <StudentLogin />,
+      },
+    ],
+  },
+
+  // Student forgot password route (guest access)
+  {
+    path: "/student/forgot-password",
+    element: (
+      <ContextWrapper>
+        <GuestRoute>
+          <GuestLayout />
+        </GuestRoute>
+      </ContextWrapper>
+    ),
+    children: [
+      {
+        index: true,
+        element: <ForgotPassword />,
       },
     ],
   },
@@ -154,6 +174,10 @@ const router = createBrowserRouter([
         element: <Students />,
       },
       {
+        path: 'students/:studentId/details',
+        element: <StudentDetails />,
+      },
+      {
         path: 'students/:studentId/results',
         element: <AdminStudentResults />,
       },
@@ -218,6 +242,10 @@ const router = createBrowserRouter([
       {
         path: 'results',
         element: <Results />,
+      },
+      {
+        path: 'students/:studentId/details',
+        element: <StudentDetails />,
       },
       {
         path: 'student-results/:studentId',

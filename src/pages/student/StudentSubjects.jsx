@@ -3,6 +3,7 @@ import { COLORS } from '../../constants/colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import API from '../../services/API';
+import debug from '../../utils/debug';
 
 const StudentSubjects = () => {
   const [selectedTerm, setSelectedTerm] = useState('');
@@ -37,7 +38,7 @@ const StudentSubjects = () => {
           setAvailableSessions([data.session.name]);
         }
       } catch (error) {
-        console.error('Error fetching session info:', error);
+        debug.error('Error fetching session info:', error);
       }
     };
     fetchSessionInfo();

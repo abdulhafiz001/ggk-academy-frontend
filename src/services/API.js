@@ -1,3 +1,5 @@
+import debug from '../utils/debug';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 class API {
@@ -43,11 +45,15 @@ class API {
             ...options,
         };
 
-        console.log('🔍 API Request Debug:');
-        console.log('URL:', url);
-        console.log('Headers:', headers);
-        console.log('Method:', options.method || 'GET');
-        console.log('Token being sent:', headers.Authorization);
+        let requestBody = undefined;
+        if (options.body) {
+            try {
+                requestBody = JSON.parse(options.body);
+            } catch {
+                // If parsing fails, don't include body in debug log
+            }
+        }
+        debug.apiRequest(url, options.method || 'GET', headers, requestBody);
 
         try {
             const response = await fetch(url, config);
@@ -66,10 +72,7 @@ class API {
                 }
             }
 
-            console.log('🔍 API Response Debug:');
-            console.log('Status:', response.status);
-            console.log('Response data:', data);
-            console.log('URL:', url);
+            debug.apiResponse(url, response.status, data);
 
             if (!response.ok) {
                 // Create error object that matches expected structure
@@ -85,8 +88,7 @@ class API {
 
             return { data, status: response.status };
         } catch (error) {
-            console.error('❌ API Error:', error);
-            console.error('❌ Error URL:', url);
+            debug.apiError(url, error);
             // If it's a network error or parsing error, create a proper error structure
             if (!error.response) {
                 error.response = {
@@ -148,6 +150,21 @@ class API {
         }
 
         return response;
+    }
+
+    // Student forgot password APIs
+    async verifyStudentIdentity(admissionNumberOrEmail) {
+        return await this.post('/student/forgot-password/verify', {
+            admission_number_or_email: admissionNumberOrEmail,
+        });
+    }
+
+    async resetStudentPassword(admissionNumberOrEmail, newPassword, passwordConfirmation) {
+        return await this.post('/student/forgot-password/reset', {
+            admission_number_or_email: admissionNumberOrEmail,
+            password: newPassword,
+            password_confirmation: passwordConfirmation,
+        });
     }
 
     async logout() {
@@ -357,7 +374,7 @@ class API {
         });
     }
 
-    async deleteStudent(studentId) {
+    async deleteTeacherStudent(studentId) {
         return await this.request(`/teacher/students/${studentId}`, {
             method: 'DELETE',
         });
@@ -445,6 +462,12 @@ class API {
 
     async getAdminStudentResults(studentId) {
         return await this.request(`/admin/students/${studentId}/results`);
+    }
+
+    async getTeacherActivities(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = queryString ? `/admin/teacher-activities?${queryString}` : '/admin/teacher-activities';
+        return await this.request(endpoint);
     }
 
     async getAdminClassResults(classId, params = {}) {
@@ -667,12 +690,12 @@ class API {
                 } catch (e) {
                     errorMessage = `Server error: ${response.status} ${response.statusText}`;
                 }
-            } else {
-                // HTML error page or other non-JSON response
-                const text = await response.text();
-                errorMessage = `Server error: ${response.status} ${response.statusText}. Please check if the endpoint exists and you have the required permissions.`;
-                console.error('Non-JSON error response:', text.substring(0, 200));
-            }
+                } else {
+                    // HTML error page or other non-JSON response
+                    const text = await response.text();
+                    errorMessage = `Server error: ${response.status} ${response.statusText}. Please check if the endpoint exists and you have the required permissions.`;
+                    debug.error('Non-JSON error response:', text.substring(0, 200));
+                }
             
             throw new Error(errorMessage);
         }
@@ -681,7 +704,7 @@ class API {
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/pdf')) {
             const text = await response.text();
-            console.error('Expected PDF but got:', contentType, text.substring(0, 200));
+            debug.error('Expected PDF but got:', contentType, text.substring(0, 200));
             throw new Error('Server did not return a PDF file. Please check the endpoint and try again.');
         }
 
@@ -708,7 +731,14 @@ class API {
             formData.append('class_id', classId);
         }
 
-        const url = `${this.baseURL}/admin/students/import`;
+        // Use teacher endpoint if user is a teacher, otherwise use admin endpoint
+        // We'll determine this based on the user context, but for now, try teacher first
+        // The backend will handle authorization
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const endpoint = user?.role === 'teacher' 
+            ? '/teacher/students/import' 
+            : '/admin/students/import';
+        const url = `${this.baseURL}${endpoint}`;
         const headers = this.getHeaders();
         delete headers['Content-Type']; // Let browser set content-type with boundary
 
@@ -759,16 +789,18 @@ class API {
     }
 
     async downloadStudentTemplate() {
+        // Use teacher endpoint if user is a teacher, otherwise use admin endpoint
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const endpoint = user?.role === 'teacher' 
+            ? '/teacher/students/import-template' 
+            : '/admin/students/import-template';
         // Construct URL - ensure no double slashes
-        const endpoint = '/admin/students/import-template';
         const baseUrl = this.baseURL.endsWith('/') ? this.baseURL.slice(0, -1) : this.baseURL;
         const url = `${baseUrl}${endpoint}`;
         const headers = this.getHeaders();
         
         try {
-            console.log('Downloading template from:', url);
-            console.log('Base URL:', this.baseURL);
-            console.log('Headers:', headers);
+            debug.log('Downloading template from:', url);
             
             // Use fetch directly but ensure proper authentication
             const authHeader = headers.Authorization || headers['Authorization'] || '';
@@ -777,8 +809,7 @@ class API {
                 throw new Error('No authentication token found. Please log in again.');
             }
             
-            console.log('Auth header for template download:', authHeader ? 'Present' : 'Missing');
-            console.log('Full URL being called:', url);
+            debug.log('Auth header for template download:', authHeader ? 'Present' : 'Missing');
             
             const response = await fetch(url, {
                 method: 'GET',
@@ -788,9 +819,7 @@ class API {
                 },
             });
 
-            console.log('Template download response status:', response.status);
-            console.log('Template download response ok:', response.ok);
-            console.log('Template download response headers:', Object.fromEntries(response.headers.entries()));
+            debug.apiResponse(url, response.status, { ok: response.ok });
 
             if (!response.ok) {
                 // Try to get error message
@@ -821,7 +850,7 @@ class API {
             }
 
             const contentType = response.headers.get('content-type');
-            console.log('Response content type:', contentType);
+            debug.log('Response content type:', contentType);
             
             // Check if it's actually an Excel file or an error JSON
             if (contentType && contentType.includes('application/json')) {
@@ -842,7 +871,7 @@ class API {
 
             return { success: true };
         } catch (error) {
-            console.error('Template download error:', error);
+            debug.apiError(url, error);
             // Re-throw with user-friendly message
             if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
                 throw new Error('Network error. Please check your connection and ensure the server is running.');

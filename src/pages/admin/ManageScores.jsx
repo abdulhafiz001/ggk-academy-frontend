@@ -19,6 +19,7 @@ import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
+import debug from '../../utils/debug';
 
 const ManageScores = () => {
   const [selectedClass, setSelectedClass] = useState('');
@@ -59,7 +60,7 @@ const ManageScores = () => {
 
   // Get teacher's assigned classes and subjects
   useEffect(() => {
-    console.log('ManageScores - User role:', user?.role);
+    debug.component('ManageScores', 'Component initialized', { userRole: user?.role });
     if (user?.role === 'teacher') {
       fetchTeacherAssignments();
     } else if (user?.role === 'admin') {
@@ -82,7 +83,7 @@ const ManageScores = () => {
         setTerm(data.term.name);
       }
     } catch (error) {
-      console.error('Error fetching current session/term:', error);
+      debug.error('Error fetching current session/term:', error);
     }
   };
 
@@ -102,7 +103,7 @@ const ManageScores = () => {
     try {
       setLoading(true);
       const response = await API.getTeacherAssignmentsForScores();
-      console.log('Teacher assignments response:', response);
+      debug.component('ManageScores', 'fetchTeacherAssignments - Response received');
       
       // Handle different response formats
       let assignments = [];
@@ -114,7 +115,7 @@ const ManageScores = () => {
         assignments = Array.isArray(response.data.data) ? response.data.data : [];
       }
       
-      console.log('Processed assignments:', assignments);
+      debug.component('ManageScores', 'fetchTeacherAssignments - Assignments processed', { count: assignments.length });
       setTeacherAssignments(assignments);
 
       // The backend returns classes with subjects, so we can use them directly
@@ -134,11 +135,10 @@ const ManageScores = () => {
       });
 
       setAvailableSubjects(allSubjects);
-      console.log('Available classes set:', assignments);
-      console.log('Available subjects set:', allSubjects);
+      debug.component('ManageScores', 'fetchTeacherAssignments - Available data set', { classes: assignments.length, subjects: allSubjects.length });
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching teacher assignments:', error);
+      debug.error('Error fetching teacher assignments:', error);
       showError('Failed to load teacher assignments');
       setLoading(false);
     }
@@ -146,14 +146,12 @@ const ManageScores = () => {
 
   const fetchAdminData = async () => {
     try {
-      console.log('fetchAdminData - Starting...');
+      debug.component('ManageScores', 'fetchAdminData - Starting');
       setLoading(true);
       const [classesResponse, subjectsResponse] = await Promise.all([
         API.getClasses(),
         API.getSubjects()
       ]);
-      
-      console.log('fetchAdminData - Raw responses:', { classesResponse, subjectsResponse });
       
       // Handle different response formats
       const classes = Array.isArray(classesResponse) ? classesResponse : 
@@ -162,18 +160,16 @@ const ManageScores = () => {
       const subjects = Array.isArray(subjectsResponse) ? subjectsResponse : 
                       (subjectsResponse?.data && Array.isArray(subjectsResponse.data)) ? subjectsResponse.data : [];
       
-      console.log('Admin - Classes response:', classesResponse);
-      console.log('Admin - Subjects response:', subjectsResponse);
-      console.log('Admin - Processed classes:', classes);
-      console.log('Admin - Processed subjects:', subjects);
-      console.log('Admin - Classes type:', typeof classes, 'Is array:', Array.isArray(classes));
-      console.log('Admin - Subjects type:', typeof subjects, 'Is array:', Array.isArray(subjects));
+      debug.component('ManageScores', 'fetchAdminData - Data loaded', { 
+        classesCount: classes.length, 
+        subjectsCount: subjects.length 
+      });
       
       setAvailableClasses(classes);
       setAvailableSubjects(subjects);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching admin data:', error);
+      debug.error('Error fetching admin data:', error);
       showError('Failed to load classes and subjects');
       setLoading(false);
     }
@@ -199,7 +195,7 @@ const ManageScores = () => {
       // Load existing scores for these students - pass class and subject explicitly
       await loadStudentScores(studentsData, selectedClass, selectedSubject);
     } catch (error) {
-      console.error('Error fetching class students:', error);
+      debug.error('Error fetching class students:', error);
       showError('Failed to load students for the selected class and subject');
     }
   };
@@ -210,8 +206,11 @@ const ManageScores = () => {
       const currentClass = classId || selectedClass;
       const currentSubject = subjectId || selectedSubject;
       
-      console.log('Loading scores for students:', studentsList);
-      console.log('Selected class:', currentClass, 'Selected subject:', currentSubject);
+      debug.component('ManageScores', 'loadStudentScores - Starting', { 
+        studentsCount: studentsList.length,
+        class: currentClass,
+        subject: currentSubject
+      });
       
       if (!studentsList || studentsList.length === 0 || !currentClass || !currentSubject) {
         setStudentScores({});
@@ -226,14 +225,13 @@ const ManageScores = () => {
       );
       
       const scoresResponses = await Promise.all(scoresPromises);
-      console.log('Scores responses:', scoresResponses);
+      debug.component('ManageScores', 'loadStudentScores - Responses received', { count: scoresResponses.length });
       
       const scoresMap = {};
-
+      
       studentsList.forEach((student, index) => {
         const response = scoresResponses[index];
         const studentScores = response?.data || response || [];
-        console.log(`Scores for student ${student.id}:`, studentScores);
         scoresMap[student.id] = {};
         
         if (Array.isArray(studentScores)) {
@@ -246,10 +244,10 @@ const ManageScores = () => {
         }
       });
       
-      console.log('Final scores map:', scoresMap);
+      debug.component('ManageScores', 'loadStudentScores - Scores loaded', { studentsCount: Object.keys(scoresMap).length });
       setStudentScores(scoresMap);
     } catch (error) {
-      console.error('Error loading student scores:', error);
+      debug.error('Error loading student scores:', error);
       setStudentScores({});
     }
   };
@@ -280,9 +278,45 @@ const ManageScores = () => {
   };
 
   const handleScoreChange = (field, value) => {
+    // Only validate for score fields
+    if (field === 'first_ca' || field === 'second_ca' || field === 'exam_score') {
+      const numValue = value === '' ? 0 : parseFloat(value);
+      
+      // Validate individual field max (each field should not exceed 100)
+      if (!isNaN(numValue) && numValue > 100) {
+        showError('Individual score cannot exceed 100');
+        return; // Don't update the field
+      }
+      
+      // Calculate what the total would be with this new value using current state
+      setScores(prev => {
+        const otherScores = {
+          first_ca: field === 'first_ca' ? numValue : (parseFloat(prev.first_ca) || 0),
+          second_ca: field === 'second_ca' ? numValue : (parseFloat(prev.second_ca) || 0),
+          exam_score: field === 'exam_score' ? numValue : (parseFloat(prev.exam_score) || 0)
+        };
+        
+        const potentialTotal = otherScores.first_ca + otherScores.second_ca + otherScores.exam_score;
+        
+        // If the total would exceed 100, show error and don't update
+        if (potentialTotal > 100) {
+          showError(`Total score cannot exceed 100. Current total would be ${potentialTotal.toFixed(1)}. Please adjust the scores.`);
+          return prev; // Return previous state without changes
+        }
+        
+        // Update the field
+        return {
+          ...prev,
+          [field]: value === '' ? '' : parseFloat(value)
+        };
+      });
+      return; // Exit early since we've already updated state
+    }
+    
+    // For non-score fields, update normally
     setScores(prev => ({
       ...prev,
-      [field]: field === 'first_ca' || field === 'second_ca' || field === 'exam_score' ? (value === '' ? '' : parseFloat(value)) : value
+      [field]: value
     }));
   };
 
@@ -314,6 +348,27 @@ const ManageScores = () => {
     }
 
     const total = (parseFloat(scores.first_ca) || 0) + (parseFloat(scores.second_ca) || 0) + (parseFloat(scores.exam_score) || 0);
+    
+    // Validate that total score does not exceed 100
+    if (total > 100) {
+      showError(`Total score cannot exceed 100. Current total is ${total.toFixed(1)}. Please adjust the scores.`);
+      return;
+    }
+    
+    // Validate individual scores don't exceed 100
+    if (scores.first_ca && parseFloat(scores.first_ca) > 100) {
+      showError('1st CA score cannot exceed 100');
+      return;
+    }
+    if (scores.second_ca && parseFloat(scores.second_ca) > 100) {
+      showError('2nd CA score cannot exceed 100');
+      return;
+    }
+    if (scores.exam_score && parseFloat(scores.exam_score) > 100) {
+      showError('Exam score cannot exceed 100');
+      return;
+    }
+    
     const grade = calculateGrade(total);
 
     setIsSaving(true);
@@ -332,16 +387,11 @@ const ManageScores = () => {
       };
 
       if (editingScore) {
-        console.log('Updating score with ID:', editingScore.id);
-        console.log('Score data:', scoreData);
-        console.log('Current user role:', user?.role);
-        console.log('Selected class:', selectedClass, 'Selected subject:', selectedSubject);
+        debug.component('ManageScores', 'handleSaveScore - Updating score', { scoreId: editingScore.id });
         await API.updateScore(editingScore.id, scoreData);
         showSuccess('Score updated successfully');
       } else {
-        console.log('Creating new score with data:', scoreData);
-        console.log('Current user role:', user?.role);
-        console.log('Selected class:', selectedClass, 'Selected subject:', selectedSubject);
+        debug.component('ManageScores', 'handleSaveScore - Creating score');
         await API.createScore(scoreData);
         showSuccess('Score saved successfully');
       }
@@ -367,7 +417,7 @@ const ManageScores = () => {
 
     } catch (error) {
       showError(error.message || 'Failed to save score');
-      console.error('Error saving score:', error);
+      debug.error('Error saving score:', error);
     } finally {
       setIsSaving(false);
     }
@@ -381,7 +431,7 @@ const ManageScores = () => {
       return;
     }
     
-    console.log('Editing score:', score);
+    debug.component('ManageScores', 'handleEditScore - Editing score', { scoreId: score?.id });
     setSelectedStudent(student);
     setEditingScore(score);
     setScores({
@@ -396,9 +446,10 @@ const ManageScores = () => {
     setShowAddForm(true);
     
     // Ensure the form shows the correct student
-    console.log('Form opened for student:', student.first_name, student.last_name);
-    console.log('Editing score data:', score);
-    console.log('Current subject:', selectedSubject, 'Score subject:', scoreSubjectId);
+    debug.component('ManageScores', 'handleEditScore - Form opened', { 
+      studentName: `${student.first_name} ${student.last_name}`,
+      subject: selectedSubject
+    });
   };
 
   // Load existing scores when opening form for a specific student and term
@@ -459,7 +510,7 @@ const ManageScores = () => {
         setTerm(term);
       }
     } catch (error) {
-      console.error('Error loading existing score:', error);
+      debug.error('Error loading existing score:', error);
       // If error, just set as new score
       setEditingScore(null);
       setScores({
@@ -520,21 +571,6 @@ const ManageScores = () => {
     );
   }
 
-  // Debug logging
-  console.log('ManageScores - Render state:', {
-    loading,
-    userRole: user?.role,
-    availableClasses: availableClasses,
-    availableClassesType: typeof availableClasses,
-    availableClassesIsArray: Array.isArray(availableClasses),
-    availableSubjects: availableSubjects,
-    availableSubjectsType: typeof availableSubjects,
-    availableSubjectsIsArray: Array.isArray(availableSubjects),
-    students: students,
-    studentsType: typeof students,
-    studentsIsArray: Array.isArray(students)
-  });
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -567,7 +603,7 @@ const ManageScores = () => {
           </button>
           <button 
             onClick={() => {
-              console.log('Opening import modal. Available classes:', availableClasses);
+              debug.component('ManageScores', 'Opening import modal', { classesCount: availableClasses.length });
               setImportModal({ 
                 isOpen: true, 
                 importing: false,
@@ -1038,12 +1074,29 @@ const ManageScores = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Total Score
                   </label>
-                  <input
-                    type="number"
-                    value={(parseFloat(scores.first_ca) || 0) + (parseFloat(scores.second_ca) || 0) + (parseFloat(scores.exam_score) || 0)}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
+                  {(() => {
+                    const total = (parseFloat(scores.first_ca) || 0) + (parseFloat(scores.second_ca) || 0) + (parseFloat(scores.exam_score) || 0);
+                    const exceedsLimit = total > 100;
+                    return (
+                      <>
+                        <input
+                          type="number"
+                          value={total}
+                          readOnly
+                          className={`w-full px-3 py-2 border rounded-md bg-gray-50 ${
+                            exceedsLimit 
+                              ? 'border-red-500 bg-red-50' 
+                              : 'border-gray-300'
+                          }`}
+                        />
+                        {exceedsLimit && (
+                          <p className="text-xs text-red-600 mt-1">
+                            ⚠️ Total score exceeds 100. Please adjust individual scores.
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                       <div>
@@ -1130,7 +1183,7 @@ const ManageScores = () => {
                       showSuccess('Template downloaded successfully');
                     } catch (error) {
                       showError(error.response?.data?.message || error.message || 'Failed to download template');
-                      console.error('Template download error:', error);
+                      debug.error('Template download error:', error);
                     }
                   }}
                   disabled={!importModal.selectedClassId || !importModal.selectedSubjectId}
@@ -1169,7 +1222,7 @@ const ManageScores = () => {
                       const className = classItem.name || classItem.class?.name;
                       
                       if (!classId || !className) {
-                        console.warn('Invalid class item:', classItem);
+                        debug.warn('Invalid class item:', classItem);
                         return null;
                       }
                       

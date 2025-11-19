@@ -7,14 +7,14 @@ import {
   ChevronDown,
   ChevronUp,
   UserPlus,
-  Download,
-  Filter,
   Shield
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
+import debug from '../../utils/debug';
+import { Link } from 'react-router-dom';
 
 const Classes = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +48,7 @@ const Classes = () => {
             await fetchTeachers();
           }
         } catch (error) {
-          console.error('Error initializing component:', error);
+          debug.error('Error initializing component:', error);
         }
       }
     };
@@ -60,11 +60,7 @@ const Classes = () => {
     try {
       setLoading(true);
       
-      // Debug logging
-      console.log('Current user:', user);
-      console.log('User role:', user?.role);
-      console.log('Is admin:', user?.role === 'admin');
-      console.log('Is form teacher:', user?.is_form_teacher);
+      debug.component('Classes', 'fetchClasses', { userRole: user?.role, isFormTeacher: user?.is_form_teacher });
       
       let response;
       
@@ -91,7 +87,7 @@ const Classes = () => {
       }
       
       // Handle different response structures
-      let classesData;
+      let classesData = [];
       
       if (user?.role === 'teacher') {
         // Form teacher response - should be direct array from form-teacher endpoint
@@ -99,38 +95,50 @@ const Classes = () => {
         // Ensure it's an array
         classesData = Array.isArray(classesData) ? classesData : [];
       } else {
-        // Admin response - might be wrapped in data property
-        if (response.data && Array.isArray(response.data)) {
-          classesData = response.data;
+        // Admin response - API service returns { data: backendResponse, status }
+        // Backend returns { data: [...], total: X, message: "..." }
+        // So the structure is: response.data = { data: [...], total: X, message: "..." }
+        // Therefore: response.data.data = [...]
+        if (response?.data) {
+          // First check if response.data.data exists and is an array (standard backend structure)
+          if (response.data.data && Array.isArray(response.data.data)) {
+            classesData = response.data.data;
+          } 
+          // If response.data is directly an array (unlikely but possible)
+          else if (Array.isArray(response.data)) {
+            classesData = response.data;
+          }
+          // Try to find any array property in response.data
+          else if (typeof response.data === 'object') {
+            const keys = Object.keys(response.data);
+            for (const key of keys) {
+              if (Array.isArray(response.data[key])) {
+                classesData = response.data[key];
+                break;
+              }
+            }
+          }
         } else if (Array.isArray(response)) {
           classesData = response;
-        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          classesData = response.data.data;
-        } else {
-          console.warn('Unexpected admin response structure:', response);
+        }
+        
+        // Ensure it's always an array
+        if (!Array.isArray(classesData)) {
+          debug.warn('Unexpected admin response structure:', response);
           classesData = [];
         }
       }
       
-      // Ensure classesData is always an array
+      // Final check - ensure it's always an array
       if (!Array.isArray(classesData)) {
-        console.error('Classes data is not an array:', classesData);
+        debug.error('Classes data is not an array after processing:', classesData);
         classesData = [];
       }
       
-      // Debug: Log what we're getting
-      console.log('Classes API Response:', response);
-      console.log('Classes Data:', classesData);
-      console.log('Is Array:', Array.isArray(classesData));
-      console.log('Classes Count:', classesData?.length || 0);
-      
-      if (Array.isArray(classesData) && classesData.length > 0) {
-        console.log('First Class:', classesData[0]);
-        console.log('First Class Students:', classesData[0]?.students);
-        console.log('First Class Student Count:', classesData[0]?.student_count);
-        console.log('First Class Students Array:', Array.isArray(classesData[0]?.students));
-        console.log('First Class Students Length:', classesData[0]?.students?.length);
-      }
+      debug.component('Classes', 'fetchClasses - Data loaded', { 
+        count: classesData?.length || 0,
+        isArray: Array.isArray(classesData)
+      });
       
       setClasses(classesData);
     } catch (error) {
@@ -140,7 +148,7 @@ const Classes = () => {
       } else {
         showError('Failed to load classes');
       }
-      console.error('Error fetching classes:', error);
+      debug.error('Error fetching classes:', error);
     } finally {
       setLoading(false);
     }
@@ -152,7 +160,7 @@ const Classes = () => {
       const teachersData = response.data.filter(user => user.role === 'teacher');
       setTeachers(teachersData);
     } catch (error) {
-      console.error('Error fetching teachers:', error);
+      debug.error('Error fetching teachers:', error);
     }
   };
 
@@ -221,7 +229,10 @@ const Classes = () => {
     );
   }
 
-  const totalStudents = classes.reduce((sum, cls) => sum + cls.student_count, 0);
+  const totalStudents = classes.reduce((sum, cls) => {
+    const count = cls.student_count || cls.students?.length || 0;
+    return sum + (Number.isNaN(count) ? 0 : Number(count));
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -239,15 +250,14 @@ const Classes = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </button>
+          <Link to="/admin/settings">
           <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
             style={{ backgroundColor: COLORS.primary.red }}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Class
           </button>
+          
+          </Link>
         </div>
       </div>
 
@@ -318,7 +328,10 @@ const Classes = () => {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Junior Secondary</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {classes.filter(cls => cls.name.includes('JSS')).length}
+                    {classes.filter(cls => {
+                      const name = cls.name?.toUpperCase() || '';
+                      return name.includes('JSS') && !name.includes('SS');
+                    }).length}
                   </dd>
                 </dl>
               </div>
@@ -338,7 +351,10 @@ const Classes = () => {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Senior Secondary</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {classes.filter(cls => cls.name.includes('SS')).length}
+                    {classes.filter(cls => {
+                      const name = cls.name?.toUpperCase() || '';
+                      return name.includes('SS') && !name.includes('JSS');
+                    }).length}
                   </dd>
                 </dl>
               </div>
@@ -403,7 +419,9 @@ const Classes = () => {
                     {getLevelFromClassName(classItem.name).charAt(0).toUpperCase() + getLevelFromClassName(classItem.name).slice(1)}
                   </span>
                   <div className="text-right">
-                    <div className="text-lg font-semibold text-gray-900">{classItem.student_count}</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {classItem.student_count || classItem.students?.length || 0}
+                    </div>
                     <div className="text-sm text-gray-500">Students</div>
                   </div>
                   {expandedClasses[classItem.id] ? (
@@ -448,13 +466,18 @@ const Classes = () => {
                       <p className="mt-2 text-sm text-gray-500">No students in this class</p>
                     </div>
                   )}
-                  {classItem.students && classItem.students.length < classItem.student_count && (
-                    <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 flex items-center justify-center">
-                      <span className="text-sm text-gray-500">
-                        +{classItem.student_count - classItem.students.length} more students
-                      </span>
-                    </div>
-                  )}
+                  {classItem.students && (() => {
+                    const studentCount = classItem.student_count || classItem.students.length || 0;
+                    const displayedCount = classItem.students.length || 0;
+                    const remaining = Number(studentCount) - Number(displayedCount);
+                    return remaining > 0 && (
+                      <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 flex items-center justify-center">
+                        <span className="text-sm text-gray-500">
+                          +{remaining} more students
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}

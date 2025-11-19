@@ -3,6 +3,7 @@ import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import { COLORS } from '../../constants/colors';
 import { Download, Filter, TrendingUp, Users, Calendar, BookOpen } from 'lucide-react';
+import debug from '../../utils/debug';
 
 const AttendanceAnalysis = () => {
     const { showError } = useNotification();
@@ -36,7 +37,7 @@ const AttendanceAnalysis = () => {
     const fetchCurrentSession = async () => {
         try {
             const response = await API.getCurrentAcademicSession();
-            console.log('📅 Attendance Analysis - Current session response:', response);
+            debug.component('AttendanceAnalysis', 'fetchCurrentSession - Response received');
             
             // Backend returns: { session, term, has_session, has_term }
             // Handle different response structures
@@ -58,17 +59,17 @@ const AttendanceAnalysis = () => {
                 setCurrentSession(session);
                 // Set selected session/term to current if not already set
                 setSelectedSession(session.id);
-                console.log('📅 Session set:', session);
+                debug.component('AttendanceAnalysis', 'Session set', { sessionId: session.id });
             }
             
             if (term) {
                 setCurrentTerm(term);
                 // Set selected term to current
                 setSelectedTerm(term.name);
-                console.log('📅 Term set:', term);
+                debug.component('AttendanceAnalysis', 'Term set', { term: term.name });
             }
         } catch (error) {
-            console.error('Error fetching current session:', error);
+            debug.error('Error fetching current session:', error);
         } finally {
             setLoading(false);
         }
@@ -90,7 +91,7 @@ const AttendanceAnalysis = () => {
             }
             setSessions(sessionsData || []);
         } catch (error) {
-            console.error('Error fetching sessions:', error);
+            debug.error('Error fetching sessions:', error);
             setSessions([]);
         }
     };
@@ -106,12 +107,12 @@ const AttendanceAnalysis = () => {
             }
             setClasses(classData || []);
         } catch (error) {
-            console.error('Error fetching classes:', error);
+            debug.error('Error fetching classes:', error);
         }
     };
 
     const fetchStatistics = async () => {
-        console.log('📊 fetchStatistics called with:', {
+        debug.component('AttendanceAnalysis', 'fetchStatistics called', {
             selectedSession,
             selectedTerm,
             selectedClass,
@@ -119,7 +120,7 @@ const AttendanceAnalysis = () => {
         });
         
         if (!selectedSession || !selectedTerm) {
-            console.warn('⚠️ Missing required filters:', {
+            debug.warn('Missing required filters:', {
                 hasSession: !!selectedSession,
                 hasTerm: !!selectedTerm
             });
@@ -143,9 +144,8 @@ const AttendanceAnalysis = () => {
                 params.week = selectedWeek;
             }
 
-            console.log('📊 Fetching statistics with params:', params);
+            debug.component('AttendanceAnalysis', 'Fetching statistics', { params });
             const response = await API.getAttendanceStatistics(params);
-            console.log('📊 Raw API response:', response);
             
             // Handle different response structures
             // API.js returns: { data: {...}, status: 200 }
@@ -167,7 +167,7 @@ const AttendanceAnalysis = () => {
                 statisticsData = response.data;
             }
             
-            console.log('📊 Processed statistics data:', statisticsData);
+            debug.component('AttendanceAnalysis', 'Statistics processed');
             
             // Ensure we have proper structure even if empty
             if (!statisticsData || !statisticsData.overall) {
@@ -184,10 +184,10 @@ const AttendanceAnalysis = () => {
                 };
             }
             
-            console.log('📊 Final statistics to set:', statisticsData);
+            debug.component('AttendanceAnalysis', 'Statistics set');
             setStatistics(statisticsData);
         } catch (error) {
-            console.error('Error fetching statistics:', error);
+            debug.error('Error fetching statistics:', error);
             showError('Error loading attendance statistics');
             setStatistics(null);
         } finally {
@@ -275,7 +275,7 @@ const AttendanceAnalysis = () => {
                                 onChange={(e) => {
                                     const termValue = e.target.value || null;
                                     setSelectedTerm(termValue);
-                                    console.log('📅 Term changed to:', termValue);
+                                    debug.component('AttendanceAnalysis', 'Term changed', { term: termValue });
                                 }}
                                 disabled={!selectedSession}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100"
@@ -319,7 +319,7 @@ const AttendanceAnalysis = () => {
                         <button
                             onClick={(e) => {
                                 e.preventDefault();
-                                console.log('🔍 Apply Filters clicked:', {
+                                debug.component('AttendanceAnalysis', 'Apply Filters clicked', {
                                     selectedSession,
                                     selectedTerm,
                                     selectedClass,

@@ -19,6 +19,7 @@ import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
+import debug from '../../utils/debug';
 
 const Results = () => {
   const navigate = useNavigate();
@@ -51,27 +52,28 @@ const Results = () => {
     const initializeComponent = async () => {
       if (user) {
         try {
-          console.log('🔍 Initializing Results component...');
-          console.log('🔍 Current user from context:', user);
-          console.log('🔍 User role:', user?.role);
-          console.log('🔍 Is form teacher (from context):', user?.is_form_teacher);
+          debug.component('Results', 'Initializing component', { 
+            userRole: user?.role,
+            isFormTeacher: user?.is_form_teacher
+          });
           
           // Get fresh user data to ensure we have the latest form teacher status
           const currentUser = await getCurrentUserWithFreshStatus();
-          console.log('🔍 Fresh user data from backend:', currentUser);
-          console.log('🔍 Fresh user role:', currentUser?.role);
-          console.log('🔍 Fresh user is_form_teacher:', currentUser?.is_form_teacher);
+          debug.component('Results', 'Fresh user data received', { 
+            role: currentUser?.role,
+            isFormTeacher: currentUser?.is_form_teacher
+          });
           
           // Fetch classes based on user role
           if (currentUser?.role === 'admin' || currentUser?.is_form_teacher) {
-            console.log('🔍 User has access, fetching classes...');
+            debug.component('Results', 'User has access, fetching classes');
             await fetchClasses();
           } else {
-            console.log('🔍 User does not have access');
+            debug.component('Results', 'User does not have access');
             showError('Access denied. Only admins and form teachers can view results.');
           }
         } catch (error) {
-          console.error('❌ Error initializing component:', error);
+          debug.error('Error initializing component:', error);
         }
       }
     };
@@ -83,42 +85,38 @@ const Results = () => {
     try {
       setLoading(true);
       
-      // Debug logging
-      console.log('🔍 fetchClasses called');
-      console.log('🔍 Current user:', user);
-      console.log('🔍 User role:', user?.role);
-      console.log('🔍 Is admin:', user?.role === 'admin');
-      console.log('🔍 Is form teacher:', user?.is_form_teacher);
+      debug.component('Results', 'fetchClasses called', { 
+        userRole: user?.role,
+        isFormTeacher: user?.is_form_teacher
+      });
       
       let response;
       
       if (user?.role === 'admin') {
         // Admin can see all classes
-        console.log('🔍 Fetching classes as admin');
+        debug.component('Results', 'fetchClasses - Fetching as admin');
         response = await API.getClasses();
       } else if (user?.role === 'teacher') {
         // Check if teacher is a form teacher
         if (user?.is_form_teacher) {
           // Form teacher can see classes where they are form teacher
-          console.log('🔍 Fetching classes as form teacher');
+          debug.component('Results', 'fetchClasses - Fetching as form teacher');
           response = await API.getTeacherAdminClasses();
         } else {
           // Regular teachers cannot access results page
-          console.log('❌ Access denied - not a form teacher');
+          debug.component('Results', 'fetchClasses - Access denied, not a form teacher');
           showError('Access denied. Only form teachers can view results.');
           setClasses([]);
           setLoading(false);
           return;
         }
       } else {
-        console.log('❌ Unknown user role:', user?.role);
+        debug.warn('Results - Unknown user role:', user?.role);
         showError('Unknown user role');
         setClasses([]);
         setLoading(false);
         return;
       }
-      
-      console.log('🔍 API response:', response);
       // Handle response data structure consistently
       let classesData;
       if (response.data && Array.isArray(response.data)) {
@@ -132,30 +130,30 @@ const Results = () => {
         classesData = response.data.data;
       } else {
         // Fallback to empty array
-        console.warn('Unexpected response structure:', response);
+        debug.warn('Results - Unexpected response structure:', response);
         classesData = [];
       }
       
-      console.log('Classes response:', response);
-      console.log('Classes data:', classesData);
-      console.log('Is array:', Array.isArray(classesData));
+      debug.component('Results', 'fetchClasses - Data loaded', { 
+        count: classesData.length,
+        isArray: Array.isArray(classesData)
+      });
       
       // Ensure classesData is always an array
       if (!Array.isArray(classesData)) {
-        console.error('Classes data is not an array:', classesData);
+        debug.error('Results - Classes data is not an array:', classesData);
         classesData = [];
       }
       
       setClasses(classesData);
     } catch (error) {
-      console.error('Error in fetchClasses:', error);
       if (error.response?.status === 403) {
         showError('Access denied. You do not have permission to view results.');
         setClasses([]);
       } else {
         showError('Failed to load classes');
       }
-      console.error('Error fetching classes:', error);
+      debug.error('Error fetching classes:', error);
     } finally {
       setLoading(false);
     }
@@ -191,7 +189,7 @@ const Results = () => {
       } else {
         showError('Failed to load class results');
       }
-      console.error('Error fetching class results:', error);
+      debug.error('Error fetching class results:', error);
     } finally {
       setLoading(false);
     }
@@ -229,7 +227,7 @@ const Results = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching student results:', error);
+      debug.error('Error fetching student results:', error);
       if (error.response?.status === 403) {
         showError('Access denied. You do not have permission to view this student\'s results.');
       } else {
@@ -281,7 +279,7 @@ const Results = () => {
   const filteredClasses = useMemo(() => {
     // Ensure classes is always an array
     if (!Array.isArray(classes)) {
-      console.warn('Classes is not an array:', classes);
+      debug.warn('Results - Classes is not an array:', classes);
       return [];
     }
     

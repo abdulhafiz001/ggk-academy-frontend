@@ -3,6 +3,7 @@ import { COLORS } from '../../constants/colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import API from '../../services/API';
+import debug from '../../utils/debug';
 
 const StudentProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -36,7 +37,7 @@ const StudentProfile = () => {
         if (data.session) setCurrentSession(data.session);
         if (data.admission_session) setAdmissionSession(data.admission_session);
       } catch (error) {
-        console.error('Error fetching session info:', error);
+        debug.error('Error fetching session info:', error);
       }
     };
     fetchSessionInfo();

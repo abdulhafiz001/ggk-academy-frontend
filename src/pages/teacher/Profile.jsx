@@ -21,6 +21,7 @@ import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
+import debug from '../../utils/debug';
 
 const Profile = () => {
   const { user, getCurrentUserWithFreshStatus } = useAuth();
@@ -47,7 +48,7 @@ const Profile = () => {
       setProfileData(response.data);
       setEditData(response.data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      debug.error('Error fetching profile:', error);
       showError('Failed to load profile data');
     } finally {
       setIsLoading(false);
@@ -69,7 +70,7 @@ const Profile = () => {
       setIsEditing(false);
       showSuccess('Profile updated successfully');
     } catch (error) {
-      console.error('Error updating profile:', error);
+      debug.error('Error updating profile:', error);
       showError(error.response?.data?.message || 'Failed to update profile');
     } finally {
       setIsLoading(false);
@@ -89,7 +90,7 @@ const Profile = () => {
       setShowPasswordForm(false);
       showSuccess('Password changed successfully');
     } catch (error) {
-      console.error('Error changing password:', error);
+      debug.error('Error changing password:', error);
       showError(error.response?.data?.message || 'Failed to change password');
     } finally {
       setIsLoading(false);

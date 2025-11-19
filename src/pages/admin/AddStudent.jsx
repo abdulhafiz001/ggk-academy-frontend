@@ -4,6 +4,7 @@ import { COLORS } from '../../constants/colors';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import API from '../../services/API';
+import debug from '../../utils/debug';
 
 const AddStudent = () => {
   const [formData, setFormData] = useState({
@@ -51,26 +52,14 @@ const AddStudent = () => {
       const classesResponse = classesData.data?.data || classesData.data || classesData;
       const subjectsResponse = subjectsData.data || subjectsData; // Subjects might also be wrapped
 
-      // Debug: Log what we're getting
-      console.log('AddStudent - Classes API Response:', classesData);
-      console.log('AddStudent - Classes Response:', classesResponse);
-      console.log('AddStudent - Classes Array:', Array.isArray(classesResponse) ? classesResponse : 'NOT AN ARRAY');
-      console.log('AddStudent - Classes Response Type:', typeof classesResponse);
-      console.log('AddStudent - Classes Response Constructor:', classesResponse?.constructor?.name);
-      console.log('AddStudent - Classes Data Property:', classesData.data);
-      console.log('AddStudent - Classes Data Property Type:', typeof classesData.data);
-      console.log('AddStudent - Classes Data Property Is Array:', Array.isArray(classesData.data));
-      console.log('AddStudent - Classes Data.Data Property:', classesData.data?.data);
-      console.log('AddStudent - Classes Data.Data Is Array:', Array.isArray(classesData.data?.data));
-
       // Ensure both are arrays - classesResponse should be the data array
       const classesArray = Array.isArray(classesResponse) ? classesResponse : [];
       const subjectsArray = Array.isArray(subjectsResponse) ? subjectsResponse : [];
       
-      console.log('AddStudent - Final Classes Array:', classesArray);
-      console.log('AddStudent - Final Classes Array Length:', classesArray.length);
-      console.log('AddStudent - Final Subjects Array:', subjectsArray);
-      console.log('AddStudent - Final Subjects Array Length:', subjectsArray.length);
+      debug.component('AddStudent', 'fetchFormData - Data loaded', { 
+        classesCount: classesArray.length,
+        subjectsCount: subjectsArray.length
+      });
 
       setClasses(classesArray);
       setSubjects(subjectsArray);
@@ -88,8 +77,7 @@ const AddStudent = () => {
         setAvailableClasses(classesArray);
       }
     } catch (error) {
-      console.error('❌ Error fetching form data:', error);
-      console.error('Error details:', error.response);
+      debug.error('Error fetching form data:', error);
       showError('Failed to load form data. Please try again.');
     } finally {
       setLoadingData(false);
@@ -177,7 +165,7 @@ const AddStudent = () => {
       });
     } catch (error) {
       showError(error.response?.data?.message || 'Please fill in all required fields and try again.');
-      console.error('Error creating student:', error);
+      debug.error('Error creating student:', error);
     } finally {
       setIsLoading(false);
     }

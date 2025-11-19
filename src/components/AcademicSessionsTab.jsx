@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Calendar,
-  Plus,
-  Edit,
-  Trash2,
-  Save,
-} from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Save, AlertTriangle, Info } from 'lucide-react';
 import { COLORS } from '../constants/colors';
 import API from '../services/API';
 import { useNotification } from '../contexts/NotificationContext';
@@ -17,7 +11,7 @@ const AcademicSessionsTab = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, session: null });
   const [submitting, setSubmitting] = useState(false);
-  const { showSuccess, showError } = useNotification();
+  const { showSuccess, showError, showWarning } = useNotification();
 
   const [newSession, setNewSession] = useState({
     name: '',
@@ -33,35 +27,18 @@ const AcademicSessionsTab = () => {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      console.log('Fetching academic sessions...');
       const response = await API.getAcademicSessions();
-      console.log('Academic Sessions API Response:', response);
       
-      // Handle different response structures
       let sessionsData = [];
       if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          sessionsData = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          sessionsData = response.data.data;
-        } else if (Array.isArray(response.data)) {
-          sessionsData = response.data;
-        }
+        sessionsData = Array.isArray(response.data) ? response.data : 
+                     response.data.data ? response.data.data : [];
       }
       
-      console.log('Extracted sessions data:', sessionsData);
       setSessions(sessionsData);
     } catch (error) {
-      console.error('❌ Error fetching academic sessions:', error);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error response:', error.response);
-      console.error('❌ Full error:', error);
-      
-      // Show more detailed error message
-      const errorMsg = error.response?.data?.message 
-        || error.message 
-        || 'Failed to fetch academic sessions. Please check your authentication and try again.';
-      showError(errorMsg);
+      console.error('Error fetching academic sessions:', error);
+      showError(error.response?.data?.message || 'Failed to fetch academic sessions');
       setSessions([]);
     } finally {
       setLoading(false);
@@ -81,23 +58,42 @@ const AcademicSessionsTab = () => {
 
     setSubmitting(true);
     try {
-      await API.createAcademicSession(newSession);
+      const response = await API.createAcademicSession(newSession);
+      
+      if (response.data.conflicting_session) {
+        showWarning(`Date conflict with ${response.data.conflicting_session.name}. Please adjust dates.`);
+        return;
+      }
+
       showSuccess('Academic session created successfully');
       setNewSession({ name: '', start_date: '', end_date: '', is_current: false });
       setShowAddForm(false);
       fetchSessions();
     } catch (error) {
-      showError(error.response?.data?.message || 'Failed to create academic session');
+      if (error.response?.data?.conflicting_session) {
+        showWarning(`Date conflict with ${error.response.data.conflicting_session.name}. Please adjust dates.`);
+      } else {
+        showError(error.response?.data?.message || 'Failed to create academic session');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSetCurrent = async (sessionId) => {
+  const handleSetCurrent = async (session) => {
+    const currentSession = sessions.find(s => s.is_current);
+    
+    if (currentSession && new Date(currentSession.end_date) > new Date()) {
+      const confirm = window.confirm(
+        `Setting "${session.name}" as current will deactivate "${currentSession.name}" which is still active. Continue?`
+      );
+      if (!confirm) return;
+    }
+
     setSubmitting(true);
     try {
-      await API.setCurrentAcademicSession(sessionId);
-      showSuccess('Current academic session updated');
+      const response = await API.setCurrentAcademicSession(session.id);
+      showSuccess(response.data.message || 'Current academic session updated');
       fetchSessions();
     } catch (error) {
       showError(error.response?.data?.message || 'Failed to set current session');
@@ -154,13 +150,45 @@ const AcademicSessionsTab = () => {
     return `${year}/${year + 1}`;
   };
 
+  const calculateSessionStatus = (session) => {
+    const today = new Date();
+    const start = new Date(session.start_date);
+    const end = new Date(session.end_date);
+
+    if (session.is_current) return 'current';
+    if (today < start) return 'upcoming';
+    if (today > end) return 'past';
+    return 'active';
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      current: 'bg-green-100 text-green-800 border-green-200',
+      active: 'bg-blue-100 text-blue-800 border-blue-200',
+      upcoming: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      past: 'bg-gray-100 text-gray-800 border-gray-200'
+    };
+    return colors[status] || colors.past;
+  };
+
+  const isSessionEditable = (session) => {
+    const status = calculateSessionStatus(session);
+    return status === 'upcoming' || status === 'active';
+  };
+
+  const canDeleteSession = (session) => {
+    const status = calculateSessionStatus(session);
+    return status === 'upcoming' && !session.is_current;
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-lg font-medium text-gray-900">Academic Sessions Management</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage academic sessions and terms. Each session has three terms (First, Second, Third).
+          <p className="text-sm text-gray-500 mt-1 flex items-center">
+            <Info className="w-4 h-4 mr-1" />
+            Sessions automatically update based on dates. Manual changes override automatic updates.
           </p>
         </div>
         <button
@@ -235,9 +263,20 @@ const AcademicSessionsTab = () => {
               style={{ '--tw-ring-color': COLORS.primary.red }}
             />
             <label htmlFor="set-current" className="ml-2 text-sm text-gray-700">
-              Set as current session
+              Set as current session (will override any existing current session)
             </label>
           </div>
+
+          {newSession.is_current && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <div className="flex items-center">
+                <AlertTriangle className="w-4 h-4 text-yellow-600 mr-2" />
+                <span className="text-sm text-yellow-700">
+                  This will deactivate the current session and set this one as active immediately.
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="flex space-x-3">
             <button
@@ -286,96 +325,109 @@ const AcademicSessionsTab = () => {
               <p className="text-sm text-gray-500">Get started by adding a new academic session.</p>
             </div>
           ) : (
-            sessions.map((session) => (
-              <div key={session.id} className="bg-white shadow rounded-lg overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center">
-                        <Calendar className="w-5 h-5 text-gray-600 mr-2" />
-                        <h4 className="text-lg font-semibold text-gray-900">{session.name}</h4>
-                        {session.is_current && (
-                          <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Current Session
+            sessions.map((session) => {
+              const status = calculateSessionStatus(session);
+              return (
+                <div key={session.id} className="bg-white shadow rounded-lg overflow-hidden border-l-4" 
+                     style={{ borderLeftColor: 
+                       status === 'current' ? '#10B981' : 
+                       status === 'active' ? '#3B82F6' : 
+                       status === 'upcoming' ? '#F59E0B' : '#6B7280' 
+                     }}>
+                  <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center">
+                          <Calendar className="w-5 h-5 text-gray-600 mr-2" />
+                          <h4 className="text-lg font-semibold text-gray-900">{session.name}</h4>
+                          <span className={`ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(status)}`}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
                           </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(session.start_date).toLocaleDateString()} - {new Date(session.end_date).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      {!session.is_current && (
-                        <button
-                          onClick={() => handleSetCurrent(session.id)}
-                          disabled={submitting}
-                          className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
-                        >
-                          Set as Current
-                        </button>
-                      )}
-                      {!session.is_current && (
-                        <button
-                          onClick={() => setDeleteModal({ isOpen: true, session })}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete session"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="px-6 py-4">
-                  <h5 className="text-sm font-medium text-gray-700 mb-3">Terms</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {(session.terms || []).map((term) => (
-                      <div key={term.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center">
-                            <span className="font-medium text-gray-900">{term.display_name}</span>
-                            {term.is_current && (
-                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                Current
-                              </span>
-                            )}
-                          </div>
-                          {!term.is_current && (
-                            <button
-                              onClick={() => handleSetCurrentTerm(term.id, session.id)}
-                              disabled={submitting}
-                              className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
-                            >
-                              Set Current
-                            </button>
+                          {session.is_manual && (
+                            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                              Manual
+                            </span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500 space-y-1">
-                          <div>Start: {new Date(term.start_date).toLocaleDateString()}</div>
-                          <div>End: {new Date(term.end_date).toLocaleDateString()}</div>
+                        <div className="text-sm text-gray-500">
+                          {new Date(session.start_date).toLocaleDateString()} - {new Date(session.end_date).toLocaleDateString()}
                         </div>
-                        <button
-                          onClick={() => {
-                            const newStart = prompt('Enter new start date (YYYY-MM-DD):', term.start_date);
-                            const newEnd = prompt('Enter new end date (YYYY-MM-DD):', term.end_date);
-                            if (newStart && newEnd) {
-                              handleUpdateTerm(term.id, {
-                                start_date: newStart,
-                                end_date: newEnd,
-                              });
-                            }
-                          }}
-                          className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                        >
-                          Edit Dates
-                        </button>
                       </div>
-                    ))}
+                      <div className="flex space-x-2">
+                        {!session.is_current && isSessionEditable(session) && (
+                          <button
+                            onClick={() => handleSetCurrent(session)}
+                            disabled={submitting}
+                            className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+                          >
+                            Set as Current
+                          </button>
+                        )}
+                        {canDeleteSession(session) && (
+                          <button
+                            onClick={() => setDeleteModal({ isOpen: true, session })}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete session"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="px-6 py-4">
+                    <h5 className="text-sm font-medium text-gray-700 mb-3">Terms</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {(session.terms || []).map((term) => (
+                        <div key={term.id} className={`border rounded-lg p-4 ${
+                          term.is_current ? 'border-green-300 bg-green-50' : 'border-gray-200'
+                        }`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center">
+                              <span className="font-medium text-gray-900">{term.display_name}</span>
+                              {term.is_current && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                  Current
+                                </span>
+                              )}
+                            </div>
+                            {!term.is_current && session.is_current && (
+                              <button
+                                onClick={() => handleSetCurrentTerm(term.id, session.id)}
+                                disabled={submitting}
+                                className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+                              >
+                                Set Current
+                              </button>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 space-y-1">
+                            <div>Start: {new Date(term.start_date).toLocaleDateString()}</div>
+                            <div>End: {new Date(term.end_date).toLocaleDateString()}</div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newStart = prompt('Enter new start date (YYYY-MM-DD):', term.start_date);
+                              const newEnd = prompt('Enter new end date (YYYY-MM-DD):', term.end_date);
+                              if (newStart && newEnd) {
+                                handleUpdateTerm(term.id, {
+                                  start_date: newStart,
+                                  end_date: newEnd,
+                                });
+                              }
+                            }}
+                            className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            Edit Dates
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}
@@ -394,4 +446,3 @@ const AcademicSessionsTab = () => {
 };
 
 export default AcademicSessionsTab;
-

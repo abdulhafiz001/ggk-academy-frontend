@@ -4,6 +4,7 @@ import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import debug from '../../utils/debug';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -27,7 +28,7 @@ const StudentDashboard = () => {
       if (data.session) setCurrentSession(data.session);
       if (data.admission_session) setAdmissionSession(data.admission_session);
     } catch (error) {
-      console.error('Error fetching session info:', error);
+      debug.error('Error fetching session info:', error);
     }
   };
 
@@ -42,12 +43,45 @@ const StudentDashboard = () => {
     }
   };
 
+  // Get form teacher name from dashboard data or user object
+  const getFormTeacherName = () => {
+    // Try from dashboard data first (most up-to-date)
+    if (dashboardData?.student?.school_class?.form_teacher) {
+      const formTeacher = dashboardData.student.school_class.form_teacher;
+      // User model uses 'name' field
+      if (formTeacher.name) {
+        return formTeacher.name;
+      }
+      // Fallback to first_name + last_name if available
+      if (formTeacher.first_name && formTeacher.last_name) {
+        return `${formTeacher.first_name} ${formTeacher.last_name}`;
+      }
+    }
+    // Fallback to user object
+    if (user?.school_class?.form_teacher) {
+      const formTeacher = user.school_class.form_teacher;
+      // User model uses 'name' field
+      if (formTeacher.name) {
+        return formTeacher.name;
+      }
+      // Fallback to first_name + last_name if available
+      if (formTeacher.first_name && formTeacher.last_name) {
+        return `${formTeacher.first_name} ${formTeacher.last_name}`;
+      }
+    }
+    // Check if form_teacher_id exists but relationship not loaded
+    if (user?.school_class?.form_teacher_id || dashboardData?.student?.school_class?.form_teacher_id) {
+      return 'Loading...';
+    }
+    return 'Not Assigned';
+  };
+
   const studentInfo = {
     name: user ? `${user.first_name} ${user.last_name}` : '',
     admissionNumber: user?.admission_number || '',
-    class: user?.school_class?.name || 'No Class Assigned',
+    class: dashboardData?.student?.school_class?.name || user?.school_class?.name || 'No Class Assigned',
     session: currentSession?.name || 'Not Set',
-    formTeacher: user?.school_class?.form_teacher?.name || 'Not Assigned'
+    formTeacher: getFormTeacherName()
   };
 
   // Calculate additional stats
@@ -77,13 +111,21 @@ const StudentDashboard = () => {
   
   const averageScore = calculateAverageScore();
 
-  const recentResults = dashboardData?.recent_scores?.slice(0, 4).map(score => ({
-    subject: score.subject?.name || 'Unknown Subject',
-    score: score.total_score || 0,
-    grade: score.grade || 'N/A',
-    total: score.total_score || 0,
-    date: score.created_at ? new Date(score.created_at).toLocaleDateString() : 'N/A'
-  })) || [];
+  const recentResults = dashboardData?.recent_scores?.slice(0, 4).map(score => {
+    // Handle different score data structures
+    const subjectName = score.subject?.name || score.subject_name || 'Unknown Subject';
+    const totalScore = score.total_score || score.total || 0;
+    const grade = score.grade || 'N/A';
+    const createdAt = score.created_at || score.updated_at;
+    
+    return {
+      subject: subjectName,
+      score: totalScore,
+      grade: grade,
+      total: totalScore,
+      date: createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'
+    };
+  }) || [];
 
   const quickActions = [
     {
