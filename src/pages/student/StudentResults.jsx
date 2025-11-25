@@ -64,9 +64,9 @@ const StudentResults = () => {
   }), [selectedSession, classHistory, user, currentSession, selectedTerm]);
 
   const schoolInfo = {
-    name: 'G-LOVE ACADEMY',
-    logo: '/images/G-LOVE ACADEMY.jpeg',
-    address: 'BESIDE ASSEMBLIES OF GOD CHURCH ZONE 9 LUGBE ABUJA',
+    name: 'Gabs Glorious Kids Academy',
+    logo: '/images/ggk-academy.jpeg',
+    address: 'No. A32, A33, A35 Lazarus Mouka Crescent, Cooperative Garden Estate(El-Salem), Lugbe, Abuja.',
   };
 
   // Fetch student subjects
@@ -597,7 +597,7 @@ const StudentResults = () => {
             .watermark-text {
               font-size: 80px;
               font-weight: bold;
-              color: #aecb1f;
+              color: #028afe;
               text-transform: uppercase;
               letter-spacing: 10px;
               white-space: nowrap;
@@ -708,7 +708,7 @@ const StudentResults = () => {
             .stat-value {
               font-size: ${forPrint ? '14px' : '18px'};
               font-weight: bold;
-              color: #aecb1f;
+              color: #028afe;
             }
             .stat-label {
               font-size: ${forPrint ? '9px' : '12px'};

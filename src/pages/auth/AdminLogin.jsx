@@ -73,12 +73,12 @@ const AdminLogin = () => {
           <div className="text-center">
             <div className="mb-6">
               <img 
-                src="/images/G-LOVE ACADEMY.jpeg" 
-                alt="G-LOVE ACADEMY Logo" 
+                src="/images/ggk-academy.jpeg" 
+                alt="Gabs Glorious Kids Academy Logo" 
                 className="h-20 w-20 mx-auto mb-4"
               />
               <span className="text-2xl font-bold text-gray-900 block">
-                G-LOVE ACADEMY
+                Gabs Glorious Kids Academy
               </span>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -218,12 +218,12 @@ const AdminLogin = () => {
       <div className="mb-8">
         <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30 flex items-center justify-center">
           <img 
-            src="/images/G-LOVE ACADEMY.jpeg" 
-            alt="G-LOVE ACADEMY Logo" 
+            src="/images/ggk-academy.jpeg" 
+            alt="Gabs Glorious Kids Academy Logo" 
             className="w-16 h-16 rounded-xl"
           />
         </div>
-        <h2 className="text-3xl font-bold mb-2">G-LOVE ACADEMY</h2>
+        <h2 className="text-3xl font-bold mb-2">Gabs Glorious Kids Academy</h2>
         <p className="text-blue-100 text-lg">Staff Portal</p>
       </div>
 

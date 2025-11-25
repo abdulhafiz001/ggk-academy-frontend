@@ -129,7 +129,7 @@ const AdminDashboard = () => {
             Dashboard
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Welcome back! Here's what's happening at G-LOVE ACADEMY.
+            Welcome back! Here's what's happening at Gabs Glorious Kids Academy.
           </p>
         </div>
         <div className="mt-4 flex md:mt-0 md:ml-4">

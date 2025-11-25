@@ -94,7 +94,7 @@ const AdminLayout = () => {
                 <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.primary.red }}>
                   <span className="text-white font-bold text-sm">G</span>
                 </div>
-                <span className="ml-2 text-lg font-bold text-gray-900">G-LOVE ACADEMY</span>
+                <span className="ml-2 text-lg font-bold text-gray-900">Gabs Glorious Kids Academy</span>
               </div>
               <nav className="mt-5 px-2 space-y-1">
                 {navigation.map((item) => {
@@ -151,7 +151,7 @@ const AdminLayout = () => {
               <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: COLORS.primary.red }}>
                 <span className="text-white font-bold text-sm">G</span>
               </div>
-              <span className="ml-2 text-lg font-bold text-gray-900">G-LOVE ACADEMY</span>
+              <span className="ml-2 text-lg font-bold text-gray-900">Gabs Glorious Kids Academy</span>
             </div>
           </div>
 

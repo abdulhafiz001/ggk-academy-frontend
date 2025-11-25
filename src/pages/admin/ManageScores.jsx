@@ -566,7 +566,7 @@ const ManageScores = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
       </div>
     );
   }
@@ -652,7 +652,8 @@ const ManageScores = () => {
             <select
               value={selectedClass}
               onChange={(e) => handleClassChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': COLORS.primary.red }}
             >
               <option value="">Select a class</option>
               {Array.isArray(availableClasses) && availableClasses.map((cls) => (
@@ -670,7 +671,8 @@ const ManageScores = () => {
             <select
               value={selectedSubject}
               onChange={(e) => handleSubjectChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': COLORS.primary.red }}
               disabled={!selectedClass}
             >
               <option value="">Select a subject</option>
@@ -715,7 +717,10 @@ const ManageScores = () => {
                     setTerm('first');
                   }
                 }}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style={{ backgroundColor: COLORS.primary.red, '--tw-ring-color': COLORS.primary.red }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.primary.blue}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.primary.red}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Score
@@ -741,7 +746,8 @@ const ManageScores = () => {
                     placeholder="Search students..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+                style={{ '--tw-ring-color': COLORS.primary.red }}
                   />
             </div>
           </div>
@@ -782,8 +788,8 @@ const ManageScores = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                              <span className="text-sm font-medium text-red-600">
+                            <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${COLORS.primary.red}20` }}>
+                              <span className="text-sm font-medium" style={{ color: COLORS.primary.red }}>
                                 {student.first_name?.[0]}{student.last_name?.[0]}
                               </span>
                         </div>
@@ -828,7 +834,8 @@ const ManageScores = () => {
                             const score = studentScore[term];
                             const hasScore = score && (score.first_ca || score.second_ca || score.exam_score);
                             
-                            let progressColor = 'bg-red-100 text-red-800';
+                            let progressColor = '';
+                            let progressStyle = { backgroundColor: `${COLORS.primary.red}20`, color: COLORS.primary.red };
                             let progressText = 'Not Started';
                             
                             if (hasScore) {
@@ -839,12 +846,15 @@ const ManageScores = () => {
                               
                               if (termProgress === 100) {
                                 progressColor = 'bg-green-100 text-green-800';
+                                progressStyle = { backgroundColor: '#d1fae5', color: '#065f46' };
                                 progressText = 'Complete';
                               } else if (termProgress >= 66) {
                                 progressColor = 'bg-blue-100 text-blue-800';
+                                progressStyle = { backgroundColor: `${COLORS.primary.red}20`, color: COLORS.primary.blue };
                                 progressText = 'Almost Done';
                               } else {
                                 progressColor = 'bg-yellow-100 text-yellow-800';
+                                progressStyle = { backgroundColor: '#fef3c7', color: '#92400e' };
                                 progressText = 'Partial';
                               }
                             }
@@ -858,16 +868,20 @@ const ManageScores = () => {
                                       hasScore ? 
                                         (progressText === 'Complete' ? 'bg-green-500' : 
                                          progressText === 'Almost Done' ? 'bg-blue-500' : 'bg-yellow-500') 
-                                        : 'bg-red-500'
+                                        : ''
                                     }`}
                                     style={{ 
                                       width: hasScore ? 
                                         `${([score.first_ca, score.second_ca, score.exam_score].filter(field => field !== null && field !== '').length / 3) * 100}%` 
-                                        : '0%' 
+                                        : '0%',
+                                      backgroundColor: hasScore ? 
+                                        (progressText === 'Complete' ? '#10b981' : 
+                                         progressText === 'Almost Done' ? COLORS.primary.red : '#eab308') 
+                                        : COLORS.primary.red
                                     }}
                                   ></div>
                                 </div>
-                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${progressColor}`}>
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${progressColor}`} style={progressStyle}>
                                   {progressText}
                                 </span>
                               </div>
@@ -901,7 +915,8 @@ const ManageScores = () => {
                                 }
                                 setShowAddForm(true);
                               }}
-                              className="text-red-600 hover:text-red-900"
+                              className="hover:opacity-80"
+                              style={{ color: COLORS.primary.red }}
                               title="Add Score"
                             >
                               <Plus className="h-4 w-4" />
@@ -973,7 +988,7 @@ const ManageScores = () => {
                       }
                     }}
                     disabled={editingScore !== null}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${
                       editingScore !== null ? 'bg-gray-100 cursor-not-allowed' : ''
                     }`}
                   >
@@ -1008,7 +1023,7 @@ const ManageScores = () => {
                       }
                     }}
                     disabled={editingScore !== null}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ${
                       editingScore !== null ? 'bg-gray-100 cursor-not-allowed' : ''
                     }`}
                   >
@@ -1037,7 +1052,8 @@ const ManageScores = () => {
                       max="100"
                       value={scores.first_ca || ''}
                       onChange={(e) => handleScoreChange('first_ca', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': COLORS.primary.red }}
                   />
                 </div>
 
@@ -1051,7 +1067,8 @@ const ManageScores = () => {
                       max="100"
                       value={scores.second_ca || ''}
                       onChange={(e) => handleScoreChange('second_ca', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': COLORS.primary.red }}
                   />
                 </div>
 
@@ -1065,7 +1082,8 @@ const ManageScores = () => {
                       max="100"
                       value={scores.exam_score || ''}
                       onChange={(e) => handleScoreChange('exam_score', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': COLORS.primary.red }}
                   />
                 </div>
               </div>
@@ -1083,14 +1101,15 @@ const ManageScores = () => {
                           type="number"
                           value={total}
                           readOnly
-                          className={`w-full px-3 py-2 border rounded-md bg-gray-50 ${
+                          className={`w-full px-3 py-2 border rounded-md ${
                             exceedsLimit 
-                              ? 'border-red-500 bg-red-50' 
-                              : 'border-gray-300'
+                              ? '' 
+                              : 'border-gray-300 bg-gray-50'
                           }`}
+                          style={exceedsLimit ? { borderColor: COLORS.primary.red, backgroundColor: `${COLORS.primary.red}10` } : {}}
                         />
                         {exceedsLimit && (
-                          <p className="text-xs text-red-600 mt-1">
+                          <p className="text-xs mt-1" style={{ color: COLORS.primary.red }}>
                             ⚠️ Total score exceeds 100. Please adjust individual scores.
                           </p>
                         )}
@@ -1119,7 +1138,8 @@ const ManageScores = () => {
                     value={scores.remark}
                     onChange={(e) => handleScoreChange('remark', e.target.value)}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+              style={{ '--tw-ring-color': COLORS.primary.red }}
                   />
                       </div>
             </div>
@@ -1134,7 +1154,10 @@ const ManageScores = () => {
                 <button
                   onClick={handleSaveScore}
                   disabled={isSaving}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50"
+                  style={{ backgroundColor: COLORS.primary.red, '--tw-ring-color': COLORS.primary.red }}
+                  onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = COLORS.primary.blue)}
+                  onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = COLORS.primary.red)}
                 >
                   {isSaving ? 'Saving...' : (editingScore ? 'Update' : 'Save')}
                 </button>
@@ -1198,7 +1221,7 @@ const ManageScores = () => {
               {/* Class Selection - Required before import */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Class <span className="text-red-500">*</span>
+                  Select Class <span style={{ color: COLORS.primary.red }}>*</span>
                 </label>
                 <select
                   value={importModal.selectedClassId || ''}
@@ -1210,7 +1233,8 @@ const ManageScores = () => {
                       selectedSubjectId: '' // Clear subject when class changes
                     });
                   }}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2"
+                  style={{ '--tw-ring-color': COLORS.primary.red }}
                   required
                 >
                   <option value="">-- Select a class --</option>
@@ -1244,7 +1268,7 @@ const ManageScores = () => {
               {/* Subject Selection - Required before import */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Subject <span className="text-red-500">*</span>
+                  Select Subject <span style={{ color: COLORS.primary.red }}>*</span>
                 </label>
                 <select
                   value={importModal.selectedSubjectId || ''}
@@ -1253,7 +1277,8 @@ const ManageScores = () => {
                     selectedSubjectId: e.target.value 
                   })}
                   disabled={!importModal.selectedClassId}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  style={{ '--tw-ring-color': COLORS.primary.red }}
                   required
                 >
                   <option value="">-- Select a subject --</option>
@@ -1292,7 +1317,7 @@ const ManageScores = () => {
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select File <span className="text-red-500">*</span>
+                  Select File <span style={{ color: COLORS.primary.red }}>*</span>
                 </label>
                 <input
                   type="file"

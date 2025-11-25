@@ -331,7 +331,7 @@ const Results = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
       </div>
     );
   }
@@ -403,7 +403,8 @@ const Results = () => {
                     placeholder="Search by class name or form teacher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+                    style={{ '--tw-ring-color': COLORS.primary.red }}
               />
             </div>
           </div>
@@ -415,7 +416,8 @@ const Results = () => {
               <select 
                 value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+                  style={{ '--tw-ring-color': COLORS.primary.red }}
               >
                 <option value="all">All Levels</option>
                   <option value="primary">Primary</option>
@@ -431,7 +433,8 @@ const Results = () => {
               <select 
                 value={selectedTerm}
                 onChange={(e) => setSelectedTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2"
+                  style={{ '--tw-ring-color': COLORS.primary.red }}
               >
                 <option value="current">Current Term</option>
                   <option value="first">First Term</option>
@@ -456,8 +459,8 @@ const Results = () => {
               >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <BookOpen className="h-5 w-5 text-red-600" />
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${COLORS.primary.red}20` }}>
+                        <BookOpen className="h-5 w-5" style={{ color: COLORS.primary.red }} />
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
@@ -498,7 +501,10 @@ const Results = () => {
                         e.stopPropagation();
                         handleSelectClass(classItem);
                       }}
-                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+                      style={{ backgroundColor: COLORS.primary.red, '--tw-ring-color': COLORS.primary.red }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.primary.blue}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.primary.red}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       View Results
@@ -526,7 +532,8 @@ const Results = () => {
               <div className="flex items-center space-x-4">
                 <button
                   onClick={handleBackToClasses}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2"
+              style={{ '--tw-ring-color': COLORS.primary.red }}
                 >
               <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Classes
@@ -581,8 +588,8 @@ const Results = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                               <div className="flex-shrink-0 h-10 w-10">
-                                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                                  <span className="text-sm font-medium text-red-600">
+                                <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${COLORS.primary.red}20` }}>
+                                  <span className="text-sm font-medium" style={{ color: COLORS.primary.red }}>
                                     {student.first_name?.[0]}{student.last_name?.[0]}
                                   </span>
                                 </div>
@@ -608,7 +615,8 @@ const Results = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
                               onClick={() => handleViewStudentResults(student.id)}
-                              className="text-red-600 hover:text-red-900"
+                              className="hover:opacity-80"
+                              style={{ color: COLORS.primary.red }}
                         >
                           <Eye className="h-4 w-4" />
                         </button>
@@ -635,8 +643,8 @@ const Results = () => {
                     return (
                       <div key={student.id} className="bg-white p-4 rounded-lg border border-gray-200">
                         <div className="flex items-center space-x-3 mb-3">
-                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-red-600">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${COLORS.primary.red}20` }}>
+                            <span className="text-sm font-medium" style={{ color: COLORS.primary.red }}>
                               {student.first_name?.[0]}{student.last_name?.[0]}
                             </span>
                           </div>
@@ -659,7 +667,10 @@ const Results = () => {
                         
                         <button
                           onClick={() => handleViewStudentResults(student.id)}
-                          className="w-full mt-3 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          className="w-full mt-3 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+                          style={{ backgroundColor: COLORS.primary.red, '--tw-ring-color': COLORS.primary.red }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.primary.blue}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.primary.red}
                         >
                           <Eye className="h-4 w-4 mr-2" />
                           View Details

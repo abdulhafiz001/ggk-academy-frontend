@@ -214,9 +214,9 @@ const TeachersTab = () => {
     const cleanName = name.toLowerCase().replace(/[^a-z\s]/g, '').trim();
     const nameParts = cleanName.split(' ').filter(part => part.length > 0);
     if (nameParts.length >= 2) {
-      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.gloveacademy`;
+      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.ggkacademy`;
     } else if (nameParts.length === 1) {
-      return `${nameParts[0]}.gloveacademy`;
+      return `${nameParts[0]}.ggkacademy`;
     }
     return '';
   };
@@ -581,7 +581,7 @@ const TeachersTab = () => {
                 type="email"
                 value={newTeacher.email}
                 onChange={(e) => handleTeacherChange('email', e.target.value)}
-                placeholder="teacher@gloveacademy.edu.ng"
+                placeholder="teacher@ggkacademy.com"
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               />
@@ -922,7 +922,7 @@ const TeachersTab = () => {
                       type="email"
                       value={editingTeacher.email || ''}
                       onChange={(e) => setEditingTeacher({ ...editingTeacher, email: e.target.value || null })}
-                      placeholder="teacher@gloveacademy.edu.ng"
+                      placeholder="teacher@ggkacademy.com"
                       className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
                       style={{ '--tw-ring-color': COLORS.primary.red }}
                     />

@@ -81,7 +81,7 @@ const ForgotPassword = () => {
           </Link>
         </div>
         <Link to="/" className="flex justify-center">
-          <img src="/images/G-LOVE ACADEMY.jpeg" alt="G-LOVE ACADEMY Logo" className="h-20 w-auto mx-auto" />
+          <img src="/images/ggk-academy.jpeg" alt="Gabs Glorious Kids Academy Logo" className="h-20 w-auto mx-auto" />
         </Link>
         <h2 className="text-center text-3xl font-extrabold text-gray-900 mt-4">
           Reset Your Password

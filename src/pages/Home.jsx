@@ -67,7 +67,7 @@ const Home = () => {
     {
       name: "Mrs. Adebayo Kemi",
       role: "Parent of SS3 Student",
-      content: "G-LOVE ACADEMY has transformed my daughter's academic journey. The digital platform provides real-time insights into her progress, and the teachers are incredibly supportive. I can confidently say this is the best investment in her future.",
+      content: "Gabs Glorious Kids Academy has transformed my daughter's academic journey. The digital platform provides real-time insights into her progress, and the teachers are incredibly supportive. I can confidently say this is the best investment in her future.",
       rating: 5,
       avatar: "👩‍👧",
       student: "Aisha Adebayo - SS3A"
@@ -91,7 +91,7 @@ const Home = () => {
     {
       name: "Dr. Sarah Williams",
       role: "Principal",
-      content: "G-LOVE ACADEMY's digital platform has elevated our school to new heights. The comprehensive system ensures transparency, accountability, and excellence in academic management. Our students' performance has improved significantly.",
+      content: "Gabs Glorious Kids Academy's digital platform has elevated our school to new heights. The comprehensive system ensures transparency, accountability, and excellence in academic management. Our students' performance has improved significantly.",
       rating: 5,
       avatar: "👩‍💼",
       student: "School Principal"
@@ -145,7 +145,7 @@ const Home = () => {
 
   const stats = [
     { number: "1,500+", label: "Active Students", icon: Users, color: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`, description: "Enrolled across all classes" },
-    { number: "28", label: "Academic Classes", icon: School, color: "from-blue-500 to-cyan-500", description: "From JSS1 to SS3" },
+    { number: "10", label: "Academic Classes", icon: School, color: "from-blue-500 to-cyan-500", description: "Primary 1 to 5, JSS 1 to 3, SS1 to 2" },
     { number: "92%", label: "Pass Rate", icon: Trophy, color: "from-yellow-500 to-orange-500", description: "WAEC & NECO results" },
     { number: "18+", label: "Years of Excellence", icon: Award, color: "from-green-500 to-emerald-500", description: "Educational leadership" },
     { number: "50+", label: "Qualified Teachers", icon: UserCheck, color: "from-purple-500 to-indigo-500", description: "Experienced educators" },
@@ -169,18 +169,18 @@ const Home = () => {
             <div className="flex items-center group cursor-pointer">
               <div className="relative">
                 <img 
-                  src="/images/G-LOVE ACADEMY.jpeg" 
-                  alt="G-LOVE ACADEMY Logo" 
+                  src="/images/ggk-academy.jpeg" 
+                  alt="Gabs Glorious Kids Academy Logo" 
                   className="h-12 w-12 mr-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
                 />
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
               </div>
               <div>
                 <span className="text-2xl font-bold text-gray-900 hidden sm:block group-hover:text-transparent group-hover:bg-clip-text transition-all duration-300" style={{ backgroundImage: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
-                  G-LOVE ACADEMY
+                  Gabs Glorious Kids Academy
                 </span>
                 <span className="text-2xl font-bold text-gray-900 sm:hidden group-hover:text-transparent group-hover:bg-clip-text transition-all duration-300" style={{ backgroundImage: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})` }}>
-                  GLA
+                  GGKA
                 </span>
                 <p className="text-sm text-gray-600 hidden sm:block">Excellence in Education</p>
               </div>
@@ -296,14 +296,14 @@ const Home = () => {
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-16 bg-white rounded-2xl shadow-lg flex items-center justify-center border border-gray-100">
                   <img 
-                    src="/images/G-LOVE ACADEMY.jpeg" 
-                    alt="G-LOVE ACADEMY Logo" 
+                    src="/images/ggk-academy.jpeg" 
+                    alt="Gabs Glorious Kids Academy Logo" 
                     className="h-12 w-12"
                   />
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Est. 2011</div>
-                  <div className="text-lg font-bold text-gray-900">G-LOVE ACADEMY</div>
+                  <div className="text-lg font-bold text-gray-900">Gabs Glorious Kids Academy</div>
                 </div>
               </div>
 
@@ -317,7 +317,7 @@ const Home = () => {
                 </h1>
                 <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
                   Empowering students with modern technology for academic success. 
-                  Access your results, track progress, and excel in your studies at G-LOVE ACADEMY.
+                  Access your results, track progress, and excel in your studies at Gabs Glorious Kids Academy.
                 </p>
               </div>
 
@@ -372,7 +372,7 @@ const Home = () => {
                         <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       </div>
-                      <div className="text-sm text-gray-500">G-LOVE ACADEMY Portal</div>
+                      <div className="text-sm text-gray-500">Gabs Glorious Kids Academy Portal</div>
                     </div>
 
                     {/* Content */}
@@ -640,7 +640,7 @@ const Home = () => {
           <h2 className="text-5xl md:text-6xl font-bold text-white mb-8">
             Ready to Join the 
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
-              G-LOVE ACADEMY Family?
+              Gabs Glorious Kids Academy Family?
             </span>
           </h2>
           <p className="text-xl text-gray-300 mb-12 leading-relaxed max-w-4xl mx-auto">
@@ -716,20 +716,20 @@ const Home = () => {
               <div className="flex items-center mb-8">
                 <div className="relative">
                   <img 
-                    src="/images/G-LOVE ACADEMY.jpeg" 
-                    alt="G-LOVE ACADEMY Logo" 
+                    src="/images/ggk-academy.jpeg" 
+                    alt="Gabs Glorious Kids Academy Logo" 
                     className="h-16 w-16 mr-4"
                   />
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
                 </div>
                 <div>
-                  <span className="text-3xl font-bold">G-LOVE ACADEMY</span>
+                  <span className="text-3xl font-bold">Gabs Glorious Kids Academy</span>
                   <p className="text-blue-200 text-sm">Excellence in Education</p>
                 </div>
               </div>
               <p className="text-gray-300 mb-8 leading-relaxed text-lg max-w-2xl">
                 Nurturing students with cutting-edge digital tools for academic success. 
-                We are committed to providing world-class education through innovative technology and dedicated teaching at G-LOVE ACADEMY.
+                We are committed to providing world-class education through innovative technology and dedicated teaching at Gabs Glorious Kids Academy.
               </p>
               <div className="space-y-4">
                 <div className="flex items-center group">
@@ -738,7 +738,7 @@ const Home = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-white">Address</div>
-                    <div className="text-gray-300">Phase II Road B, Aco/Amac Estate Off Airport Road, Abuja, Nigeria</div>
+                    <div className="text-gray-300">No. A32, A33, A35 Lazarus Mouka Crescent, Cooperative Garden Estate(El-Salem), Lugbe, Abuja.</div>
                   </div>
                 </div>
                 <div className="flex items-center group">
@@ -747,7 +747,7 @@ const Home = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-white">Phone</div>
-                    <div className="text-gray-300">08125275999</div>
+                    <div className="text-gray-300">+234-8030752962, +234-8038191867</div>
                   </div>
                 </div>
                 <div className="flex items-center group">
@@ -756,7 +756,7 @@ const Home = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-white">Email</div>
-                    <div className="text-gray-300">info@gloveacademy.edu.ng</div>
+                    <div className="text-gray-300">ggkacademy@gmail.com</div>
                   </div>
                 </div>
               </div>
@@ -789,11 +789,11 @@ const Home = () => {
                 </li>
                 <li className="flex items-center text-gray-300">
                   <Phone className="h-5 w-5 mr-3" />
-                  <span>08125275999</span>
+                  <span>+234-8030752962, +234-8038191867</span>
                 </li>
                 <li className="flex items-center text-gray-300">
                   <Mail className="h-5 w-5 mr-3" />
-                  <span>info@gloveacademy.edu.ng</span>
+                  <span>ggkacademy@gmail.com</span>
                 </li>
               </ul>
               
@@ -822,7 +822,7 @@ const Home = () => {
           <div className="border-t border-white/20 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="text-gray-300 mb-4 md:mb-0">
-                <p>&copy; {new Date().getFullYear()} G-LOVE ACADEMY. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} Gabs Glorious Kids Academy. All rights reserved.</p>
                 <p className="text-sm mt-1">Excellence in Education • Character Development • Academic Achievement</p>
               </div>
               <div className="flex space-x-6 text-sm text-gray-400">

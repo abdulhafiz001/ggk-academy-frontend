@@ -1,9 +1,9 @@
-// G-LOVE ACADEMY Result Platform Color Constants
+// Gabs Glorious Kids Academy Result Platform Color Constants
 export const COLORS = {
   // Primary Brand Colors
   primary: {
-    red: '#aecb1f',      // Main brand color (green)
-    blue: '#382f89',     // Secondary brand color (purple)
+    red: '#028afe',      // Main brand color (blue)
+    blue: '#0325cc',     // Secondary brand color (dark blue)
     yellow: '#e8bf41',   // Brand yellow/gold (keeping for accents)
   },
   

@@ -62,10 +62,10 @@ const StudentLogin = () => {
           </Link>
         </div>
         <Link to="/" className="flex justify-center">
-          <img src="/images/G-LOVE ACADEMY.jpeg" alt="G-LOVE ACADEMY Logo" className="h-20 w-auto mx-auto" />
+          <img src="/images/ggk-academy.jpeg" alt="Gabs Glorious Kids Academy Logo" className="h-20 w-auto mx-auto" />
         </Link>
         <h2 className="text-center text-3xl font-extrabold text-gray-900 mt-4">
-          G-LOVE ACADEMY Student Portal
+          Gabs Glorious Kids Academy Student Portal
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Access your academic results and progress

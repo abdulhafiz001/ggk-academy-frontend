@@ -215,11 +215,11 @@ const StudentDashboard = () => {
       <div className="bg-white shadow rounded-lg mb-6">
         <div className="px-4 py-8 sm:px-6 text-center">
           <img 
-            src="/images/G-LOVE ACADEMY.jpeg" 
-            alt="G-LOVE ACADEMY Logo" 
+            src="/images/ggk-academy.jpeg" 
+            alt="Gabs Glorious Kids Academy Logo" 
             className="h-32 w-auto mx-auto mb-4"
           />
-          <h2 className="text-2xl font-bold text-gray-900">G-LOVE ACADEMY</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Gabs Glorious Kids Academy</h2>
           <p className="text-lg text-gray-600 mt-2">Student Portal Dashboard</p>
         </div>
       </div>

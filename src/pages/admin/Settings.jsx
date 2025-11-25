@@ -390,7 +390,7 @@ const ClassesTab = () => {
       {/* Classes List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
           <span className="ml-2 text-gray-600">Loading classes...</span>
         </div>
       ) : (
@@ -783,7 +783,7 @@ const SubjectsTab = () => {
       {/* Subjects List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
           <span className="ml-2 text-gray-600">Loading subjects...</span>
         </div>
       ) : (
@@ -1169,7 +1169,7 @@ const TeacherActivitiesTab = () => {
         
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
             <span className="ml-2 text-gray-600">Loading activities...</span>
           </div>
         ) : (
@@ -1295,9 +1295,9 @@ const AdminsTab = () => {
     const cleanName = name.toLowerCase().replace(/[^a-z\s]/g, '').trim();
     const nameParts = cleanName.split(' ').filter(part => part.length > 0);
     if (nameParts.length >= 2) {
-      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.gloveacademy`;
+      return `${nameParts[0]}.${nameParts[nameParts.length - 1]}.ggkacademy`;
     } else if (nameParts.length === 1) {
-      return `${nameParts[0]}.gloveacademy`;
+      return `${nameParts[0]}.ggkacademy`;
     }
     return '';
   };
@@ -1470,7 +1470,7 @@ const AdminsTab = () => {
                 type="email"
                 value={newAdmin.email}
                 onChange={(e) => handleAdminChange('email', e.target.value)}
-                placeholder="admin@gloveacademy.edu.ng"
+                placeholder="admin@ggkacademy.com"
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               />
@@ -1547,7 +1547,7 @@ const AdminsTab = () => {
       {/* Admins List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
           <span className="ml-2 text-gray-600">Loading administrators...</span>
         </div>
       ) : (
