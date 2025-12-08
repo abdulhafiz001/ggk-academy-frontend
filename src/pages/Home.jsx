@@ -144,10 +144,10 @@ const Home = () => {
   ];
 
   const stats = [
-    { number: "1,500+", label: "Active Students", icon: Users, color: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`, description: "Enrolled across all classes" },
+    { number: "2,500+", label: "Active Students", icon: Users, color: `linear-gradient(to right, ${COLORS.primary.red}, ${COLORS.primary.blue})`, description: "Enrolled across all classes" },
     { number: "10", label: "Academic Classes", icon: School, color: "from-blue-500 to-cyan-500", description: "Primary 1 to 5, JSS 1 to 3, SS1 to 2" },
-    { number: "92%", label: "Pass Rate", icon: Trophy, color: "from-yellow-500 to-orange-500", description: "WAEC & NECO results" },
-    { number: "18+", label: "Years of Excellence", icon: Award, color: "from-green-500 to-emerald-500", description: "Educational leadership" },
+    { number: "98%", label: "Pass Rate", icon: Trophy, color: "from-yellow-500 to-orange-500", description: "WAEC & NECO results" },
+    { number: "10+", label: "Years of Excellence", icon: Award, color: "from-green-500 to-emerald-500", description: "Educational leadership" },
     { number: "50+", label: "Qualified Teachers", icon: UserCheck, color: "from-purple-500 to-indigo-500", description: "Experienced educators" },
     { number: "24/7", label: "Platform Access", icon: Clock, color: "from-pink-500 to-rose-500", description: "Always available" }
   ];
@@ -345,12 +345,12 @@ const Home = () => {
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-8 pt-8 border-t border-gray-200">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">1,500+</div>
+                  <div className="text-2xl font-bold text-gray-900">2,500+</div>
                   <div className="text-sm text-gray-600">Students</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">92%</div>
-                  <div className="text-sm text-gray-600">Pass Rate</div>
+                  <div className="text-2xl font-bold text-gray-900">100%</div>
+                  <div className="text-sm text-gray-600">Satisfid Parent</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-900">9+</div>
