@@ -302,7 +302,7 @@ const Home = () => {
                   />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Est. 2011</div>
+                  <div className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Est. 2016</div>
                   <div className="text-lg font-bold text-gray-900">Gabs Glorious Kids Academy</div>
                 </div>
               </div>
@@ -353,7 +353,7 @@ const Home = () => {
                   <div className="text-sm text-gray-600">Pass Rate</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">14+</div>
+                  <div className="text-2xl font-bold text-gray-900">9+</div>
                   <div className="text-sm text-gray-600">Years</div>
                 </div>
               </div>
