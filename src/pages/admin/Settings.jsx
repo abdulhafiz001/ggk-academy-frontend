@@ -16,7 +16,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  GraduationCap
+  GraduationCap,
+  Download
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
@@ -293,14 +294,30 @@ const ClassesTab = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium text-gray-900">Manage Classes</h3>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
-          style={{ backgroundColor: COLORS.primary.red }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Class
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={async () => {
+              try {
+                await API.exportClasses();
+                showSuccess('Classes exported successfully');
+              } catch (error) {
+                showError(error.message || 'Failed to export classes');
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
+            style={{ backgroundColor: COLORS.primary.red }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Class
+          </button>
+        </div>
       </div>
 
       {/* Add Class Form */}
@@ -687,14 +704,30 @@ const SubjectsTab = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium text-gray-900">Manage Subjects</h3>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
-          style={{ backgroundColor: COLORS.primary.red }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Subject
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={async () => {
+              try {
+                await API.exportSubjects();
+                showSuccess('Subjects exported successfully');
+              } catch (error) {
+                showError(error.message || 'Failed to export subjects');
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
+            style={{ backgroundColor: COLORS.primary.red }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Subject
+          </button>
+        </div>
       </div>
 
       {/* Add Subject Form */}

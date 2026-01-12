@@ -788,8 +788,82 @@ class API {
         return data;
     }
 
-    async exportStudents() {
-        const url = `${this.baseURL}/admin/students/export`;
+    async exportStudents(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const url = `${this.baseURL}/admin/students/export${queryString ? `?${queryString}` : ''}`;
+        const headers = this.getHeaders();
+        
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    ...headers,
+                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+                credentials: 'include',
+            });
+            
+            // Check if response is actually an Excel file
+            const contentType = response.headers.get('content-type');
+            
+            if (!response.ok) {
+                // Check if response is JSON before parsing
+                if (contentType && contentType.includes('application/json')) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to export students');
+                } else {
+                    const text = await response.text();
+                    // If it's HTML, it might be a redirect or error page
+                    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                        throw new Error('Server returned an error page. Please check your authentication and try again.');
+                    }
+                    throw new Error(text || 'Failed to export students');
+                }
+            }
+
+            // Verify it's actually an Excel file
+            if (!contentType || (!contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') && 
+                !contentType.includes('application/octet-stream') &&
+                !contentType.includes('application/excel'))) {
+                const text = await response.text();
+                if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                    throw new Error('Server returned an error page. Please check your authentication and try again.');
+                }
+                throw new Error('Server did not return an Excel file. Please check the endpoint.');
+            }
+
+            const blob = await response.blob();
+            
+            // Verify blob is not empty
+            if (blob.size === 0) {
+                throw new Error('Received empty file from server');
+            }
+
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const filename = params.include_subjects 
+                ? `students_with_subjects_export_${new Date().toISOString().split('T')[0]}.xlsx`
+                : `students_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+            link.href = downloadUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            
+            // Wait a bit before removing to ensure download starts
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(downloadUrl);
+            }, 100);
+
+            return { success: true };
+        } catch (error) {
+            debug.apiError(url, error);
+            throw error;
+        }
+    }
+
+    async exportClasses() {
+        const url = `${this.baseURL}/admin/classes/export`;
         const headers = this.getHeaders();
         
         const response = await fetch(url, {
@@ -800,15 +874,91 @@ class API {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to export students');
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to export classes');
+            } else {
+                const text = await response.text();
+                throw new Error(text || 'Failed to export classes');
+            }
         }
 
         const blob = await response.blob();
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = downloadUrl;
-        link.download = `students_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+        link.download = `classes_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        return { success: true };
+    }
+
+    async exportSubjects() {
+        const url = `${this.baseURL}/admin/subjects/export`;
+        const headers = this.getHeaders();
+        
+        const response = await fetch(url, {
+            headers: {
+                ...headers,
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to export subjects');
+            } else {
+                const text = await response.text();
+                throw new Error(text || 'Failed to export subjects');
+            }
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `subjects_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        return { success: true };
+    }
+
+    async exportTeachers() {
+        const url = `${this.baseURL}/admin/teachers/export`;
+        const headers = this.getHeaders();
+        
+        const response = await fetch(url, {
+            headers: {
+                ...headers,
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to export teachers');
+            } else {
+                const text = await response.text();
+                throw new Error(text || 'Failed to export teachers');
+            }
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `teachers_export_${new Date().toISOString().split('T')[0]}.xlsx`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -947,8 +1097,14 @@ class API {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to export scores');
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to export scores');
+            } else {
+                const text = await response.text();
+                throw new Error(text || 'Failed to export scores');
+            }
         }
 
         const blob = await response.blob();

@@ -50,6 +50,7 @@ const Students = () => {
   const [editModal, setEditModal] = useState({ isOpen: false, student: null });
   const [submitting, setSubmitting] = useState(false);
   const [importModal, setImportModal] = useState({ isOpen: false, importing: false, selectedClassId: null });
+  const [exportModal, setExportModal] = useState({ isOpen: false, selectedClassId: null });
   const [importResults, setImportResults] = useState(null);
 
   // Role-based permissions - use useMemo to ensure they update when user changes
@@ -416,13 +417,8 @@ const Students = () => {
           {canImportExport && user && (
             <>
               <button 
-                onClick={async () => {
-                  try {
-                    await API.exportStudents();
-                    showSuccess('Students exported successfully');
-                  } catch (error) {
-                    showError(error.message || 'Failed to export students');
-                  }
+                onClick={() => {
+                  setExportModal({ isOpen: true, selectedClassId: null });
                 }}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
@@ -1060,6 +1056,103 @@ const Students = () => {
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {exportModal.isOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Export Students</h3>
+                <button
+                  onClick={() => {
+                    setExportModal({ isOpen: false, selectedClassId: null });
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Select a class to export students. Two files will be generated:
+                </p>
+                <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-gray-600">
+                  <li>One with basic student data (first_name, last_name, middle_name, admission_number, email, phone, gender, address)</li>
+                  <li>One with the same data plus subjects field</li>
+                </ul>
+              </div>
+
+              {/* Class Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Class
+                </label>
+                <select
+                  value={exportModal.selectedClassId || ''}
+                  onChange={(e) => {
+                    setExportModal({ ...exportModal, selectedClassId: e.target.value });
+                  }}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2"
+                  style={{ '--tw-ring-color': COLORS.primary.red }}
+                >
+                  <option value="">-- All Classes --</option>
+                  {classes && classes.length > 0 ? (
+                    classes.filter(c => c.id !== 'all').map((classItem) => (
+                      <option key={classItem.id} value={classItem.id}>
+                        {classItem.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No classes available</option>
+                  )}
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Select a class to export students from that class, or leave empty to export all students.
+                </p>
+              </div>
+
+              <div className="flex justify-end mt-6 space-x-3">
+                <button
+                  onClick={() => {
+                    setExportModal({ isOpen: false, selectedClassId: null });
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      // Export basic data
+                      const params1 = {};
+                      if (exportModal.selectedClassId) params1.class_id = exportModal.selectedClassId;
+                      await API.exportStudents(params1);
+                      
+                      // Wait longer before second export to ensure first download completes and session is maintained
+                      await new Promise(resolve => setTimeout(resolve, 1500));
+                      
+                      // Export with subjects
+                      const params2 = { ...params1, include_subjects: true };
+                      await API.exportStudents(params2);
+                      
+                      showSuccess('Students exported successfully (2 files generated)');
+                      setExportModal({ isOpen: false, selectedClassId: null });
+                    } catch (error) {
+                      showError(error.message || 'Failed to export students');
+                    }
+                  }}
+                  className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white"
+                  style={{ backgroundColor: COLORS.primary.red }}
+                >
+                  Export
                 </button>
               </div>
             </div>

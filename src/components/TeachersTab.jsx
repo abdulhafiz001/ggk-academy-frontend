@@ -5,6 +5,7 @@ import {
   Edit,
   Trash2,
   Save,
+  Download,
 } from 'lucide-react';
 import { COLORS } from '../constants/colors';
 import API from '../services/API';
@@ -526,14 +527,30 @@ const TeachersTab = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium text-gray-900">Manage Teachers</h3>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
-          style={{ backgroundColor: COLORS.primary.red }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Teacher
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={async () => {
+              try {
+                await API.exportTeachers();
+                showSuccess('Teachers exported successfully');
+              } catch (error) {
+                showError(error.message || 'Failed to export teachers');
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
+            style={{ backgroundColor: COLORS.primary.red }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Teacher
+          </button>
+        </div>
       </div>
 
       {/* Add Teacher Form */}
